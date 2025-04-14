@@ -27,7 +27,7 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
 
-    @Value("${qad.jwt.base64-secret}")
+    @Value("${lat.jwt.base64-secret}")
     private String jwtKey;
 
     @Bean
@@ -42,7 +42,8 @@ public class SecurityConfiguration {
         String[] whiteList = {
                 "/",
                 "/api/v1/auth/login", "/api/v1/auth/refresh", "api/v1/auth/register",
-                "/api/payment/vnpay-return"
+                "/api/payment/vnpay-return",
+                "/api/v1/users/"
         };
 
         http

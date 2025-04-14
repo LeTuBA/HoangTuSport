@@ -33,7 +33,7 @@ public class AuthController {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${qad.jwt.refresh-token-validity-in-seconds}")
+    @Value("${lat.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
     @PostMapping("/auth/login")
