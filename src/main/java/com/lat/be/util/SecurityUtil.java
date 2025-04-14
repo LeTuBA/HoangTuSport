@@ -28,13 +28,13 @@ public class SecurityUtil {
 
     private final JwtEncoder jwtEncoder;
 
-    @Value("${qad.jwt.base64-secret}")
+    @Value("${lat.jwt.base64-secret}")
     private String jwtKey;
 
-    @Value("${qad.jwt.access-token-validity-in-seconds}")
+    @Value("${lat.jwt.access-token-validity-in-seconds}")
     private long accessTokenExpiration;
 
-    @Value("${qad.jwt.refresh-token-validity-in-seconds}")
+    @Value("${lat.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
     public String createAccessToken(String email, ResLoginDTO resLoginDTO){
