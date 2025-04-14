@@ -20,7 +20,6 @@ public interface SupplierMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "supplierCategories", ignore = true)
-    @Mapping(target = "importHistories", ignore = true)
     @Mapping(target = "products", ignore = true)
     Supplier toEntity(CreateSupplierDTO dto);
     
@@ -34,7 +33,6 @@ public interface SupplierMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "supplierCategories", ignore = true)
-    @Mapping(target = "importHistories", ignore = true)
     @Mapping(target = "products", ignore = true)
     void updateEntityFromDto(UpdateSupplierDTO dto, @MappingTarget Supplier supplier);
 }

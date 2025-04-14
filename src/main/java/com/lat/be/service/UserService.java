@@ -101,20 +101,20 @@ public class UserService {
         return currentUser;
     }
 
-    public User handleGetUserByUserName(String username) {
-        return this.userRepository.findByUsername(username);
+    public User handleGetUserByEmail(String email) {
+        return this.userRepository.findByEmail(email);
     }
 
-    public boolean existsByUsername(String username) {
-        return this.userRepository.existsByUsername(username);
+    public boolean existsByEmail(String email) {
+        return this.userRepository.existsByEmail(email);
     }
 
     public User getCurrentUser() {
-        String username = SecurityUtil.getCurrentUserLogin()
+        String email = SecurityUtil.getCurrentUserLogin()
             .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy thông tin người dùng hiện tại"));
-        User user = handleGetUserByUserName(username);
+        User user = handleGetUserByEmail(email);
         if (user == null) {
-            throw new EntityNotFoundException("Không tìm thấy người dùng với username: " + username);
+            throw new EntityNotFoundException("Không tìm thấy người dùng với email: " + email);
         }
         return user;
     }
@@ -123,11 +123,13 @@ public class UserService {
         ResCreateUserDTO resCreateUserDTO = new ResCreateUserDTO();
 
         resCreateUserDTO.setId(user.getId());
-        resCreateUserDTO.setUsername(user.getUsername());
+        resCreateUserDTO.setEmail(user.getEmail());
         resCreateUserDTO.setName(user.getName());
         resCreateUserDTO.setCreatedAt(user.getCreatedAt());
         resCreateUserDTO.setGender(user.getGender());
         resCreateUserDTO.setAddress(user.getAddress());
+        resCreateUserDTO.setRoleName(user.getRole().getName());
+        resCreateUserDTO.setAvatar(user.getAvatar());
 
         return resCreateUserDTO;
     }
@@ -140,6 +142,7 @@ public class UserService {
         resUpdateUserDTO.setUpdatedAt(user.getUpdatedAt());
         resUpdateUserDTO.setGender(user.getGender());
         resUpdateUserDTO.setAddress(user.getAddress());
+        resUpdateUserDTO.setAvatar(user.getAvatar());
 
         return resUpdateUserDTO;
     }
@@ -149,7 +152,7 @@ public class UserService {
         ResUserDTO.RoleUser roleUser = new ResUserDTO.RoleUser();
 
         resUserDTO.setId(user.getId());
-        resUserDTO.setUsername(user.getUsername());
+        resUserDTO.setEmail(user.getEmail());
         resUserDTO.setName(user.getName());
         resUserDTO.setUpdatedAt(user.getUpdatedAt());
         resUserDTO.setCreatedAt(user.getCreatedAt());
@@ -170,7 +173,7 @@ public class UserService {
     public User toEntity(CreateUserDTO formRequest) {
         return User.builder()
                 .name(formRequest.getName())
-                .username(formRequest.getUsername())
+                .email(formRequest.getEmail())
                 .password(formRequest.getPassword())
                 .gender(formRequest.getGender())
                 .address(formRequest.getAddress())
@@ -179,14 +182,14 @@ public class UserService {
     }
 
     public void updateUserToken(String token, String email){
-        User currentUser = this.handleGetUserByUserName(email);
+        User currentUser = this.handleGetUserByEmail(email);
         if(currentUser != null){
             currentUser.setRefreshToken(token);
             this.userRepository.save(currentUser);
         }
     }
 
-    public User getUserByRefreshTokenAndEmail(String token, String username){
-        return this.userRepository.findByRefreshTokenAndUsername(token, username);
+    public User getUserByRefreshTokenAndEmail(String token, String email){
+        return this.userRepository.findByRefreshTokenAndEmail(token, email);
     }
 }

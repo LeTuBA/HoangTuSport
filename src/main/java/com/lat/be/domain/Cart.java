@@ -1,45 +1,38 @@
 package com.lat.be.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lat.be.util.SecurityUtil;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
-@Table(name = "import_details")
+@Table(name = "carts")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ImportDetail {
+public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Min(value = 0, message = "Giá sản phẩm phải lớn hơn hoặc bằng 0")
-    long price;
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    User user;
 
-    @Min(value = 0, message = "Số lượng sản phẩm phải lớn hơn hoặc bằng 0")
-    int quantity;
-
-    @Min(value = 0, message = "Tổng giá sản phẩm phải lớn hơn hoặc bằng 0")
-    long totalPrice;
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<CartDetail> cartDetails;
 
     Instant createdAt;
     Instant updatedAt;
     String createdBy;
     String updatedBy;
-
-    @ManyToOne
-    @JoinColumn(name = "import_history_id")
-    ImportHistory importHistory;
-
-    @ManyToOne
-    @JoinColumn(name = "product_id")
-    Product product;
 
     @PrePersist
     public void handleBeforeCreate() {
@@ -56,5 +49,4 @@ public class ImportDetail {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
     }
-
-}
+} 

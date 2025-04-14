@@ -11,7 +11,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lat.be.domain.Customer;
 import com.lat.be.domain.Order;
 import com.lat.be.domain.OrderDetail;
 import com.lat.be.domain.Product;
@@ -19,7 +18,6 @@ import com.lat.be.domain.User;
 import com.lat.be.domain.request.CreateOrderDTO;
 import com.lat.be.domain.request.OrderItemDTO;
 import com.lat.be.domain.response.ResultPaginationDTO;
-import com.lat.be.repository.CustomerRepository;
 import com.lat.be.repository.OrderDetailRepository;
 import com.lat.be.repository.OrderRepository;
 import com.lat.be.repository.ProductRepository;
@@ -35,23 +33,15 @@ public class OrderService {
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final CustomerRepository customerRepository;
 
     @Transactional
     public Order createOrder(CreateOrderDTO createOrderDTO) {
         // Get current user
-        String currentUsername = SecurityUtil.getCurrentUserLogin()
+        String currentEmail = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
-        User currentUser = userRepository.findByUsername(currentUsername);
+        User currentUser = userRepository.findByEmail(currentEmail);
         if (currentUser == null) {
             throw new RuntimeException("Không tìm thấy người dùng hiện tại");
-        }
-        
-        // Get customer if provided
-        Customer customer = null;
-        if (createOrderDTO.getCustomerId() != null) {
-            customer = customerRepository.findById(createOrderDTO.getCustomerId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
         }
         
         // Pre-load all products to avoid multiple database calls
@@ -92,9 +82,8 @@ public class OrderService {
                 .paymentMethod(createOrderDTO.getPaymentMethod())
                 .totalPrice(totalPrice)
                 .user(currentUser)
-                .customer(customer)
                 .createdAt(Instant.now())
-                .createdBy(currentUsername)
+                .createdBy(currentEmail)
                 .build();
         
         Order savedOrder = orderRepository.save(order);
@@ -120,7 +109,7 @@ public class OrderService {
                     .quantity(item.getQuantity())
                     .totalPrice(item.getSellPrice() * item.getQuantity())
                     .createdAt(Instant.now())
-                    .createdBy(currentUsername)
+                    .createdBy(currentEmail)
                     .build();
             
             orderDetails.add(orderDetailRepository.save(orderDetail));
@@ -129,12 +118,6 @@ public class OrderService {
         return savedOrder;
     }
     
-    /**
-     * Update an existing order
-     * 
-     * @param order Order to update
-     * @return Updated order
-     */
     public Order updateOrder(Order order) {
         return orderRepository.save(order);
     }
@@ -160,7 +143,7 @@ public class OrderService {
     }
     
     public List<Order> getOrdersByUser(User user) {
-        return orderRepository.findByUser(user);
+        return this.orderRepository.findByUser(user);
     }
     
     public List<OrderDetail> getOrderDetails(Long orderId) {

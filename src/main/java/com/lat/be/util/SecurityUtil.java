@@ -40,7 +40,7 @@ public class SecurityUtil {
     public String createAccessToken(String email, ResLoginDTO resLoginDTO){
         ResLoginDTO.UserInsideToken userInsideToken = new ResLoginDTO.UserInsideToken();
         userInsideToken.setId(resLoginDTO.getUser().getId());
-        userInsideToken.setUsername(resLoginDTO.getUser().getUsername());
+        userInsideToken.setEmail(resLoginDTO.getUser().getEmail());
         userInsideToken.setName(resLoginDTO.getUser().getName());
 
 
@@ -70,7 +70,7 @@ public class SecurityUtil {
 
         ResLoginDTO.UserInsideToken userInsideToken = new ResLoginDTO.UserInsideToken();
         userInsideToken.setId(resLoginDTO.getUser().getId());
-        userInsideToken.setUsername(resLoginDTO.getUser().getUsername());
+        userInsideToken.setEmail(resLoginDTO.getUser().getEmail());
         userInsideToken.setName(resLoginDTO.getUser().getName());
 
         Instant now = Instant.now();

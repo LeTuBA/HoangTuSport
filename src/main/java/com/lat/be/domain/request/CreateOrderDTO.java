@@ -19,8 +19,6 @@ public class CreateOrderDTO {
     @NotNull(message = "Phương thức thanh toán không được để trống")
     private PaymentMethod paymentMethod;
     
-    private Long customerId;
-    
     @NotEmpty(message = "Danh sách sản phẩm không được để trống")
     private List<OrderItemDTO> items;
 } 

@@ -19,15 +19,15 @@ public class UserDetailsCustom implements UserDetailsService {
     private final UserService userService;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        com.lat.be.domain.User user = this.userService.handleGetUserByUserName(username);
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        com.lat.be.domain.User user = this.userService.handleGetUserByEmail(email);
 
         if(user == null) {
-            throw new UsernameNotFoundException("Username/ password không hợp lệ ");
+            throw new UsernameNotFoundException("Email/ password không hợp lệ ");
         }
         String role = user.getRole().getName();
         return new User(
-            user.getUsername(),
+            user.getEmail(),
             user.getPassword(),
             Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
         );

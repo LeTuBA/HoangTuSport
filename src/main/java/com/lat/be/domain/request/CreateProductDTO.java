@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.lat.be.domain.enumeration.ProductStatus;
 
 @Data
 @Builder
@@ -20,16 +21,12 @@ public class CreateProductDTO {
     private String name;
 
     private String description;
-
-    @Min(value = 0, message = "Giá mua sản phẩm phải lớn hơn hoặc bằng 0")
-    private Long buyPrice;
     
     @Min(value = 0, message = "Giá bán sản phẩm phải lớn hơn hoặc bằng 0")
     private Long sellPrice;
 
     private Integer quantity;
-    private String status;
-    private Instant date;
+    private ProductStatus status;
     @NotNull(message = "Nhà cung cấp không được để trống")
     private Long supplierId;
     
