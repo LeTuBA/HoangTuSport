@@ -8,8 +8,8 @@ import com.lat.be.domain.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
-    User findByUsername(String username);
-    boolean existsByUsername(String username);
+    User findByEmail(String email);
+    boolean existsByEmail(String email);
 
-    User findByRefreshTokenAndUsername(String token, String username);
+    User findByRefreshTokenAndEmail(String token, String email);
 }

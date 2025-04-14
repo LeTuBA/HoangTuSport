@@ -43,7 +43,7 @@ public class OrderController {
     private final UserService userService;
     private final VNPayService vnPayService;
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @PostMapping
     @ApiMessage("Tạo đơn hàng mới thành công")
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderDTO createOrderDTO) {
@@ -97,7 +97,7 @@ public class OrderController {
         return ResponseEntity.ok(result);
     }
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @GetMapping("/{id}")
     @ApiMessage("Lấy thông tin đơn hàng thành công")
     public ResponseEntity<Order> getOrderById(@PathVariable("id") Long id) {
@@ -107,20 +107,20 @@ public class OrderController {
     }
     
     @GetMapping("/my-orders")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy danh sách đơn hàng của tôi thành công")
     public ResponseEntity<List<Order>> getMyOrders() {
-        String currentUsername = SecurityUtil.getCurrentUserLogin()
+        String currentEmail = SecurityUtil.getCurrentUserLogin()
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
         
-        User currentUser = userService.handleGetUserByUserName(currentUsername);
+        User currentUser = userService.handleGetUserByEmail(currentEmail);
         List<Order> myOrders = orderService.getOrdersByUser(currentUser);
         
         return ResponseEntity.ok(myOrders);
     }
     
     @GetMapping("/{id}/details")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy chi tiết đơn hàng thành công")
     public ResponseEntity<List<OrderDetail>> getOrderDetails(@PathVariable("id") Long id) {
         List<OrderDetail> orderDetails = orderService.getOrderDetails(id);
@@ -128,7 +128,7 @@ public class OrderController {
     }
     
     @GetMapping("/{id}/payment-url")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy URL thanh toán cho đơn hàng thành công")
     public ResponseEntity<?> getPaymentUrl(@PathVariable("id") Long id) {
         Order order = orderService.getOrderById(id)

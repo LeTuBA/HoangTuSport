@@ -120,13 +120,11 @@ public class ProductService {
 
         existingProduct.setName(product.getName());
         existingProduct.setDescription(product.getDescription());
-        existingProduct.setBuyPrice(product.getBuyPrice());
         existingProduct.setSellPrice(product.getSellPrice());
         existingProduct.setQuantity(product.getQuantity());
         existingProduct.setStatus(product.getStatus());
         existingProduct.setCategory(categoryOptional.get());
         existingProduct.setSupplier(supplierOptional.get());
-        existingProduct.setDate(product.getDate());
 
         // Xử lý tải lên hình ảnh
         if (imageFile != null && !imageFile.isEmpty()) {

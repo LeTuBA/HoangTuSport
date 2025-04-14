@@ -53,10 +53,6 @@ public class Order {
     @JsonIgnore
     private List<OrderDetail> orderDetails;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id")
-    Customer customer;
-
     @PrePersist
     public void handleBeforeCreate() {
         this.createdAt = Instant.now();

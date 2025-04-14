@@ -40,10 +40,10 @@ public class UserController {
         ) throws IdInvalidException {
         User user = this.userService.toEntity(formRequest);
 
-        boolean isUsernameExist = this.userService.existsByUsername(user.getUsername());
-        if(isUsernameExist) {
+        boolean isEmailExist = this.userService.existsByEmail(user.getEmail());
+        if(isEmailExist) {
             throw new IdInvalidException(
-                    "Username " + user.getUsername() + " đã tồn tại, vui lòng sử dụng username khác");
+                    "Email " + user.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
         }
         String hashPassword = this.passwordEncoder.encode(user.getPassword());
         user.setPassword(hashPassword);

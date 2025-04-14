@@ -49,10 +49,6 @@ public class Supplier {
 
     @OneToMany(mappedBy = "supplier")
     @JsonIgnore
-    private List<ImportHistory> importHistories;
-
-    @OneToMany(mappedBy = "supplier")
-    @JsonIgnore
     private List<Product> products;
 
     @PrePersist

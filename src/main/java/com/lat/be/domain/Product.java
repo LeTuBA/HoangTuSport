@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lat.be.util.SecurityUtil;
 import java.time.Instant;
 import java.util.List;
+import com.lat.be.domain.enumeration.ProductStatus;
 
 
 @Entity
@@ -33,19 +34,15 @@ public class Product  {
     @Column(columnDefinition = "MEDIUMTEXT")
     String description;
 
-    // Giá mua sản phẩm lớn hơn hoặc bằng 0
-    @Min(value = 0, message = "Giá mua sản phẩm phải lớn hơn hoặc bằng 0")
-    long buyPrice;
-
     // Giá bán sản phẩm lớn hơn hoặc bằng 0
     @Min(value = 0, message = "Giá bán sản phẩm phải lớn hơn hoặc bằng 0")
     long sellPrice;
 
-
     int quantity;
     String image;
-    String status;
-    Instant date;
+    
+    @Enumerated(EnumType.STRING)
+    ProductStatus status;
 
     Instant createdAt;
     Instant updatedAt;
@@ -64,10 +61,6 @@ public class Product  {
     @OneToMany(mappedBy = "product")
     @JsonIgnore
     private List<OrderDetail> orderDetails;
-
-    @OneToMany(mappedBy = "product")
-    @JsonIgnore
-    private List<ImportDetail> importDetails;
 
     @PrePersist
     public void handleBeforeCreate() {

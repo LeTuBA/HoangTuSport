@@ -39,6 +39,14 @@ public class RoleService {
         return null;
     }
 
+    public Role fetchRoleByName(String name){
+        Optional<Role> roleOptional = this.roleRepository.findByName(name);
+        if(roleOptional.isPresent()){
+            return roleOptional.get();
+        }
+        return null;
+    }
+
     public ResultPaginationDTO fetchAll(Specification<Role> spec, Pageable pageable) {
         Page<Role> pageRole = this.roleRepository.findAll(spec, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
