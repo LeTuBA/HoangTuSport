@@ -7,7 +7,7 @@ import com.lat.be.util.SecurityUtil;
 import java.time.Instant;
 
 @Entity
-@Table(name = "cart_items")
+@Table(name = "cart_details")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
