@@ -6,7 +6,6 @@ import org.mapstruct.MappingTarget;
 import com.lat.be.domain.Product;
 import com.lat.be.domain.request.CreateProductDTO;
 import com.lat.be.domain.request.UpdateProductDTO;
-import com.lat.be.domain.enumeration.ProductStatus;
 
 @Mapper(componentModel = "spring")
 public interface ProductMapper {

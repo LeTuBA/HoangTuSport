@@ -30,9 +30,11 @@ public class Order {
     long totalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 20)
     PaymentMethod paymentMethod;
     
     @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 20)
     PaymentStatus paymentStatus;
     
     @Column(columnDefinition = "MEDIUMTEXT")
@@ -52,6 +54,12 @@ public class Order {
     @OneToMany(mappedBy = "order")
     @JsonIgnore
     private List<OrderDetail> orderDetails;
+
+    @Column(nullable = false)
+    private String phone;
+
+    @Column(nullable = false)
+    private String address;
 
     @PrePersist
     public void handleBeforeCreate() {
