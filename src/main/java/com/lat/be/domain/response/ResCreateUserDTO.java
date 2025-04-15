@@ -17,10 +17,10 @@ import java.time.Instant;
 public class ResCreateUserDTO {
     Long id;
     String name;
-    String username;
+    String email;
     GenderEnum gender;
     String address;
     Instant createdAt;
     String avatar;
-    Long roleId;
+    String roleName;
 }

@@ -9,13 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.lat.be.domain.Order;
 import com.lat.be.domain.OrderDetail;
@@ -26,7 +20,6 @@ import com.lat.be.domain.response.ResultPaginationDTO;
 import com.lat.be.service.OrderService;
 import com.lat.be.service.UserService;
 import com.lat.be.service.VNPayService;
-import com.lat.be.util.SecurityUtil;
 import com.lat.be.util.annotation.ApiMessage;
 import com.lat.be.util.constant.PaymentMethod;
 import com.lat.be.util.constant.PaymentStatus;
@@ -43,47 +36,44 @@ public class OrderController {
     private final UserService userService;
     private final VNPayService vnPayService;
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @PostMapping
-    @ApiMessage("Tạo đơn hàng mới thành công")
+    @ApiMessage("Tạo đơn hàng từ giỏ hàng thành công")
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderDTO createOrderDTO) {
-        // Debug log for incoming DTO
-        System.out.println("Received order request: " + createOrderDTO);
-        System.out.println("Payment method: " + createOrderDTO.getPaymentMethod());
-        System.out.println("Items count: " + createOrderDTO.getItems().size());
-        
-        // Log each item
-        for (int i = 0; i < createOrderDTO.getItems().size(); i++) {
-            var item = createOrderDTO.getItems().get(i);
-            System.out.println("Item " + i + ": ProductID=" + item.getProductId() + 
-                               ", Quantity=" + item.getQuantity() + 
-                               ", SellPrice=" + item.getSellPrice());
-        }
-        
-        Order order = orderService.createOrder(createOrderDTO);
-        
-        // Log total price of created order
-        System.out.println("Created order with ID: " + order.getId() + ", Total Price: " + order.getTotalPrice());
-   
-        OrderResponse response = OrderResponse.builder()
-            .order(order)
-            .build();
-
-        // For TRANSFER payment method, generate a VNPAY payment URL
-        if (order.getPaymentMethod() == PaymentMethod.TRANSFER) {
-            String orderInfo = "Thanh toan don hang: " + order.getId();
-            String paymentUrl = vnPayService.createPaymentUrl(
-                order.getId(), 
-                order.getTotalPrice(), 
-                orderInfo
-            );
+        try {
+            Order order = orderService.createOrder(createOrderDTO);
             
-            order.setPaymentUrl(paymentUrl);
-            orderService.updateOrder(order);
-            response.setPaymentUrl(paymentUrl);
+            OrderResponse response = OrderResponse.builder()
+                .order(order)
+                .build();
+
+            // Xử lý theo phương thức thanh toán
+            if (order.getPaymentMethod() == PaymentMethod.COD) {
+                // Nếu là COD, chỉ cần tạo đơn hàng với trạng thái PENDING
+                order.setPaymentStatus(PaymentStatus.PENDING);
+                order.setPaymentMessage("Cảm ơn bạn đã đặt hàng. Vui lòng chuẩn bị số tiền " + order.getTotalPrice() + " VNĐ khi nhận hàng");
+                orderService.updateOrder(order);
+            } else if (order.getPaymentMethod() == PaymentMethod.TRANSFER) {
+                // Nếu là TRANSFER, tạo URL thanh toán VNPay
+                String orderInfo = "Thanh toan don hang: " + order.getId();
+                String paymentUrl = vnPayService.createPaymentUrl(
+                    order.getId(), 
+                    order.getTotalPrice(), 
+                    orderInfo
+                );
+                
+                order.setPaymentStatus(PaymentStatus.PENDING);
+                order.setPaymentMessage("Vui lòng thanh toán để hoàn tất đơn hàng");
+                order.setPaymentUrl(paymentUrl);
+                orderService.updateOrder(order);
+                
+                response.setPaymentUrl(paymentUrl);
+            }
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Lỗi khi tạo đơn hàng: " + e.getMessage());
         }
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     @PreAuthorize("hasAnyRole('admin', 'employee')")
@@ -93,11 +83,11 @@ public class OrderController {
             @Filter Specification<Order> orderSpec,
             Pageable pageable) {
         
-        ResultPaginationDTO result = this.orderService.getAllOrders(orderSpec, pageable);
+        ResultPaginationDTO result = orderService.getAllOrders(orderSpec, pageable);
         return ResponseEntity.ok(result);
     }
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @GetMapping("/{id}")
     @ApiMessage("Lấy thông tin đơn hàng thành công")
     public ResponseEntity<Order> getOrderById(@PathVariable("id") Long id) {
@@ -107,20 +97,16 @@ public class OrderController {
     }
     
     @GetMapping("/my-orders")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy danh sách đơn hàng của tôi thành công")
     public ResponseEntity<List<Order>> getMyOrders() {
-        String currentUsername = SecurityUtil.getCurrentUserLogin()
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
-        
-        User currentUser = userService.handleGetUserByUserName(currentUsername);
+        User currentUser = userService.getCurrentUser();
         List<Order> myOrders = orderService.getOrdersByUser(currentUser);
-        
         return ResponseEntity.ok(myOrders);
     }
     
     @GetMapping("/{id}/details")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy chi tiết đơn hàng thành công")
     public ResponseEntity<List<OrderDetail>> getOrderDetails(@PathVariable("id") Long id) {
         List<OrderDetail> orderDetails = orderService.getOrderDetails(id);
@@ -128,31 +114,31 @@ public class OrderController {
     }
     
     @GetMapping("/{id}/payment-url")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy URL thanh toán cho đơn hàng thành công")
     public ResponseEntity<?> getPaymentUrl(@PathVariable("id") Long id) {
         Order order = orderService.getOrderById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
         
-        // Only generate payment URL for TRANSFER payment method
+        // Chỉ tạo URL thanh toán cho phương thức TRANSFER
         if (order.getPaymentMethod() != PaymentMethod.TRANSFER) {
             Map<String, String> response = new HashMap<>();
-            response.put("error", "Đơn hàng không sử dụng phương thức thanh toán TRANSFER");
+            response.put("error", "Đơn hàng không sử dụng phương thức thanh toán chuyển khoản");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
         
-        // If payment URL already exists, return it
+        // Nếu đã có URL thanh toán, trả về URL đó
         if (order.getPaymentUrl() != null && !order.getPaymentUrl().isEmpty()) {
             Map<String, String> response = new HashMap<>();
             response.put("paymentUrl", order.getPaymentUrl());
             return ResponseEntity.ok(response);
         }
         
-        // Generate new payment URL
+        // Tạo URL thanh toán mới
         String orderInfo = "Thanh toan don hang: " + order.getId();
         String paymentUrl = vnPayService.createPaymentUrl(order.getId(), order.getTotalPrice(), orderInfo);
         
-        // Update order with payment URL
+        // Cập nhật đơn hàng với URL thanh toán
         order.setPaymentUrl(paymentUrl);
         orderService.updateOrder(order);
         
@@ -185,9 +171,7 @@ public class OrderController {
             order.setPaymentMessage("Đã hoàn tiền");
         }
         
-        // Save updated order
         Order updatedOrder = orderService.updateOrder(order);
-        
         return ResponseEntity.ok(updatedOrder);
     }
 } 

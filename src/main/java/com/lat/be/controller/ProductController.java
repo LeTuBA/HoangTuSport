@@ -54,7 +54,7 @@ public class ProductController {
 
     @PreAuthorize("hasRole('admin')")
     @PostMapping(value = "", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    @ApiMessage("Tạo sản phẩm mới")
+@ApiMessage("Tạo sản phẩm mới")
     public ResponseEntity<Product> create(
             @Valid @ModelAttribute CreateProductDTO createProductDTO,
             @RequestPart(value = "image", required = false) MultipartFile imageFile

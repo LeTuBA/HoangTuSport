@@ -14,10 +14,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import com.lat.be.domain.Role;
 import com.lat.be.domain.User;
 import com.lat.be.domain.request.ReqLoginDTO;
 import com.lat.be.domain.response.ResCreateUserDTO;
 import com.lat.be.domain.response.ResLoginDTO;
+import com.lat.be.service.RoleService;
 import com.lat.be.service.UserService;
 import com.lat.be.util.SecurityUtil;
 import com.lat.be.util.annotation.ApiMessage;
@@ -32,6 +35,7 @@ public class AuthController {
     private final SecurityUtil securityUtil;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final RoleService roleService;
 
     @Value("${lat.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
@@ -48,11 +52,11 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ResLoginDTO res = new ResLoginDTO();
 
-        User currentUserDB = this.userService.handleGetUserByUserName(loginDTO.getUsername());
+        User currentUserDB = this.userService.handleGetUserByEmail(loginDTO.getUsername());
         if(currentUserDB != null){
             ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
                     currentUserDB.getId(),
-                    currentUserDB.getUsername(),
+                    currentUserDB.getEmail(),
                     currentUserDB.getName(),
                     currentUserDB.getRole()
             );
@@ -69,11 +73,11 @@ public class AuthController {
         this.userService.updateUserToken(refresh_token, loginDTO.getUsername());
 
         //set cookies
-        // ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
-        //         .httpOnly(true)
-        //         .maxAge(refreshTokenExpiration)
-        //         .path("/")
-        //         .build();
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .maxAge(refreshTokenExpiration)
+                .path("/")
+                .build();
 
         res.setRefreshToken(refresh_token);
 
@@ -87,15 +91,16 @@ public class AuthController {
     @GetMapping("/auth/account")
     @ApiMessage("fetch account")
     public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount(){
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() ?
-                SecurityUtil.getCurrentUserLogin().get() : "";
-        User currentUserDB = this.userService.handleGetUserByUserName(email);
+        String currentEmail = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
+        
+        User currentUser = userService.handleGetUserByEmail(currentEmail);
         ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin();
         ResLoginDTO.UserGetAccount userGetAccount = new ResLoginDTO.UserGetAccount(userLogin);
-        if(currentUserDB != null){
-            userLogin.setId(currentUserDB.getId());
-            userLogin.setUsername(currentUserDB.getUsername());
-            userLogin.setName(currentUserDB.getName());
+        if(currentUser != null){
+            userLogin.setId(currentUser.getId());
+            userLogin.setEmail(currentUser.getEmail());
+            userLogin.setName(currentUser.getName());
             userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok(userGetAccount);
@@ -123,11 +128,11 @@ public class AuthController {
         //issue new token/set refresh token as cookies
         ResLoginDTO res = new ResLoginDTO();
 
-        User currentUserDB = this.userService.handleGetUserByUserName(email);
+        User currentUserDB = this.userService.handleGetUserByEmail(email);
         if(currentUserDB != null){
             ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
                     currentUserDB.getId(),
-                    currentUserDB.getUsername(),
+                    currentUserDB.getEmail(),
                     currentUserDB.getName(),
                     currentUserDB.getRole()
             );
@@ -184,13 +189,15 @@ public class AuthController {
     @PostMapping("/auth/register")
     @ApiMessage("Register a new user")
     public ResponseEntity<ResCreateUserDTO> register(@Valid @RequestBody User postmanUser) throws IdInvalidException {
-        boolean isEmailExist = this.userService.existsByUsername(postmanUser.getUsername());
+        boolean isEmailExist = this.userService.existsByEmail(postmanUser.getEmail());
         if(isEmailExist){
-            throw new IdInvalidException("Username " + postmanUser.getUsername() +" đã tồn tại, vui lòng chọn username khác");
+            throw new IdInvalidException("Email " + postmanUser.getEmail() +" đã tồn tại, vui lòng chọn email khác");
         }
 
         String hashPassword = this.passwordEncoder.encode(postmanUser.getPassword());
         postmanUser.setPassword(hashPassword);
+        Role role = this.roleService.fetchRoleByName("user");
+        postmanUser.setRole(role);
         User newUser = this.userService.handleCreateUser(postmanUser, null);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUserDTO(newUser));
     }

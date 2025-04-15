@@ -19,7 +19,6 @@ public class ResUpdateUserDTO {
     String name;
     GenderEnum gender;
     String address;
-    int age;
     Instant updatedAt;
     String avatar;
 
