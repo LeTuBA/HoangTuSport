@@ -2,6 +2,7 @@ package com.lat.be.domain;
 
 // import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -32,8 +33,8 @@ public class User  {
     String name;
 
     @NotNull
-    @Size(min = 3, message = "Tên đăng nhập phải có ít nhất 3 ký tự")
-    String username;
+    @Email(message = "Email không đúng định dạng", regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
+    String email;
 
     @NotNull
     @Size(min = 3, message = "Password phải có ít nhất 3 ký tự")
@@ -56,10 +57,6 @@ public class User  {
     @OneToMany(mappedBy = "user")
     @JsonIgnore
     private List<Order> orders;
-
-    @OneToMany(mappedBy = "user")
-    @JsonIgnore
-    private List<ImportHistory> importHistories;
 
     @PrePersist
     public void handleBeforeCreate() {

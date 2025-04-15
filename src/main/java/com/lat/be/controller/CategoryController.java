@@ -36,7 +36,6 @@ public class CategoryController {
     private final CategoryService categoryService;
     private final CategoryMapper categoryMapper;
 
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("")
     @ApiMessage("Lấy tất cả danh mục")
     public ResponseEntity<ResultPaginationDTO> getCategories(
@@ -96,7 +95,6 @@ public class CategoryController {
         return ResponseEntity.ok(null);
     }
 
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/{id}")
     @ApiMessage("Lấy danh mục theo id")
     public ResponseEntity<Category> getCategoryById(

@@ -1,46 +1,38 @@
 package com.lat.be.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lat.be.util.SecurityUtil;
-
 import java.time.Instant;
 import java.util.List;
 
 @Entity
-@Table(name = "customers")
+@Table(name = "carts")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Customer {
+public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Size(min = 2, message = "Tên khách hàng phải có ít nhất 2 ký tự")
-    String fullname;
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    User user;
 
-    @Pattern(regexp = "^0[0-9]{9}$", message = "Số điện thoại phải bắt đầu bằng số 0 và có 10 ký tự")
-    String phone;
-
-    long point;
-    boolean isActive;
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<CartDetail> cartDetails;
 
     Instant createdAt;
     Instant updatedAt;
     String createdBy;
     String updatedBy;
-
-    @OneToMany(mappedBy = "customer")
-    @JsonIgnore
-    private List<Order> orders;
 
     @PrePersist
     public void handleBeforeCreate() {
@@ -57,5 +49,4 @@ public class Customer {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
     }
-    
-}
+} 

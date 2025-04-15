@@ -2,6 +2,7 @@ package com.lat.be.domain.request;
 
 import com.lat.be.util.constant.GenderEnum;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -12,7 +13,8 @@ public class CreateUserDTO {
     private String name;
 
     @NotNull
-    private String username;
+    @Email(message = "Email không đúng định dạng", regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
+    private String email;
     
     @NotNull
     private String password;

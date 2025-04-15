@@ -11,20 +11,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lat.be.domain.Customer;
 import com.lat.be.domain.Order;
 import com.lat.be.domain.OrderDetail;
 import com.lat.be.domain.Product;
 import com.lat.be.domain.User;
+import com.lat.be.domain.CartDetail;
 import com.lat.be.domain.request.CreateOrderDTO;
-import com.lat.be.domain.request.OrderItemDTO;
 import com.lat.be.domain.response.ResultPaginationDTO;
-import com.lat.be.repository.CustomerRepository;
 import com.lat.be.repository.OrderDetailRepository;
 import com.lat.be.repository.OrderRepository;
 import com.lat.be.repository.ProductRepository;
-import com.lat.be.repository.UserRepository;
-import com.lat.be.util.SecurityUtil;
+import com.lat.be.util.constant.PaymentStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,77 +31,49 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
-    private final CustomerRepository customerRepository;
+    private final CartService cartService;
+    private final UserService userService;
 
     @Transactional
     public Order createOrder(CreateOrderDTO createOrderDTO) {
-        // Get current user
-        String currentUsername = SecurityUtil.getCurrentUserLogin()
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
-        User currentUser = userRepository.findByUsername(currentUsername);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng hiện tại");
+        // Lấy thông tin người dùng hiện tại
+        User currentUser = this.userService.getCurrentUser();
+        
+        // Lấy danh sách sản phẩm từ giỏ hàng
+        List<CartDetail> cartItems = this.cartService.getCartItems();
+        
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Giỏ hàng của bạn đang trống, không thể tạo đơn hàng");
         }
         
-        // Get customer if provided
-        Customer customer = null;
-        if (createOrderDTO.getCustomerId() != null) {
-            customer = customerRepository.findById(createOrderDTO.getCustomerId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
-        }
-        
-        // Pre-load all products to avoid multiple database calls
-        List<Long> productIds = createOrderDTO.getItems().stream()
-                .map(OrderItemDTO::getProductId)
-                .toList();
-                
-        List<Product> products = productRepository.findAllById(productIds);
-        
-        // Create a map for quick access to products
-        var productMap = products.stream()
-                .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
-        
-        // Calculate total price using prices from frontend (OrderItemDTO)
+        // Tính tổng giá trị đơn hàng
         long totalPrice = 0;
-        for (OrderItemDTO item : createOrderDTO.getItems()) {
-            Product product = productMap.get(item.getProductId());
-            if (product == null) {
-                throw new RuntimeException("Không tìm thấy sản phẩm với ID: " + item.getProductId());
-            }
-            // Use the sellPrice from OrderItemDTO instead of product
-            long itemPrice = item.getSellPrice() * item.getQuantity();
-            
-            // Debug log for price calculation
-            System.out.println("Product ID: " + item.getProductId() + 
-                               ", SellPrice: " + item.getSellPrice() + 
-                               ", Quantity: " + item.getQuantity() + 
-                               ", ItemTotal: " + itemPrice);
-            
+        for (CartDetail item : cartItems) {
+            Product product = item.getProduct();
+            long itemPrice = product.getSellPrice() * item.getQuantity();
             totalPrice += itemPrice;
         }
         
-        // Debug total price
-        System.out.println("Final Total Price: " + totalPrice);
-        
-        // Create and save order
+        // Tạo và lưu đơn hàng
         Order order = Order.builder()
                 .paymentMethod(createOrderDTO.getPaymentMethod())
                 .totalPrice(totalPrice)
                 .user(currentUser)
-                .customer(customer)
+                .phone(createOrderDTO.getPhone())
+                .address(createOrderDTO.getAddress())
+                .paymentStatus(PaymentStatus.PENDING)
                 .createdAt(Instant.now())
-                .createdBy(currentUsername)
+                .createdBy(currentUser.getEmail())
                 .build();
         
         Order savedOrder = orderRepository.save(order);
         
-        // Create and save order details
+        // Tạo và lưu chi tiết đơn hàng
         List<OrderDetail> orderDetails = new ArrayList<>();
-        for (OrderItemDTO item : createOrderDTO.getItems()) {
-            Product product = productMap.get(item.getProductId());
+        for (CartDetail item : cartItems) {
+            Product product = item.getProduct();
             
-            // Update product stock
+            // Cập nhật số lượng tồn kho
             int currentStock = product.getQuantity();
             if (currentStock < item.getQuantity()) {
                 throw new RuntimeException("Số lượng sản phẩm " + product.getName() + " không đủ");
@@ -115,26 +84,22 @@ public class OrderService {
             OrderDetail orderDetail = OrderDetail.builder()
                     .order(savedOrder)
                     .product(product)
-                    // Use sellPrice from OrderItemDTO
-                    .price(item.getSellPrice())
+                    .price(product.getSellPrice())
                     .quantity(item.getQuantity())
-                    .totalPrice(item.getSellPrice() * item.getQuantity())
+                    .totalPrice(product.getSellPrice() * item.getQuantity())
                     .createdAt(Instant.now())
-                    .createdBy(currentUsername)
+                    .createdBy(currentUser.getEmail())
                     .build();
             
             orderDetails.add(orderDetailRepository.save(orderDetail));
         }
         
+        // Xóa giỏ hàng sau khi đặt hàng thành công
+        cartService.clearCart();
+        
         return savedOrder;
     }
-    
-    /**
-     * Update an existing order
-     * 
-     * @param order Order to update
-     * @return Updated order
-     */
+
     public Order updateOrder(Order order) {
         return orderRepository.save(order);
     }
@@ -144,7 +109,7 @@ public class OrderService {
     }
     
     public ResultPaginationDTO getAllOrders(Specification<Order> orderSpec, Pageable pageable) {
-        Page<Order> orderPage = this.orderRepository.findAll(orderSpec, pageable);
+        Page<Order> orderPage = orderRepository.findAll(orderSpec, pageable);
         
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();

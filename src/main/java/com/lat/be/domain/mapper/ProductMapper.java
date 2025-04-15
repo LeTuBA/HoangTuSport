@@ -13,7 +13,6 @@ public interface ProductMapper {
     // Ánh xạ từ CreateProductDTO sang Product
     @Mapping(source = "name", target = "name")
     @Mapping(source = "description", target = "description")
-    @Mapping(source = "buyPrice", target = "buyPrice")
     @Mapping(source = "sellPrice", target = "sellPrice")
     @Mapping(source = "quantity", target = "quantity")
     @Mapping(source = "status", target = "status")
@@ -26,13 +25,11 @@ public interface ProductMapper {
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "orderDetails", ignore = true)
-    @Mapping(target = "importDetails", ignore = true)
     Product toEntity(CreateProductDTO dto);
     
     // Cập nhật Product từ UpdateProductDTO
     @Mapping(source = "name", target = "name")
     @Mapping(source = "description", target = "description")
-    @Mapping(source = "buyPrice", target = "buyPrice")
     @Mapping(source = "sellPrice", target = "sellPrice")
     @Mapping(source = "quantity", target = "quantity")
     @Mapping(source = "status", target = "status")
@@ -45,6 +42,5 @@ public interface ProductMapper {
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "orderDetails", ignore = true)
-    @Mapping(target = "importDetails", ignore = true)
     void updateEntityFromDto(UpdateProductDTO dto, @MappingTarget Product product);
 } 

@@ -16,11 +16,10 @@ import java.time.Instant;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 public class ResUserDTO {
     Long id;
-    String username;
+    String email;
     String name;
     GenderEnum gender;
     String address;
-    int age;
     Instant updatedAt;
     Instant createdAt;
     RoleUser role;
