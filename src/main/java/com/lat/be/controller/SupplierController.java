@@ -42,8 +42,7 @@ public class SupplierController {
     private final SupplierService supplierService;
     private final SupplierMapper supplierMapper;
     private final CategoryService categoryService;
-
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    
     @GetMapping("/suppliers")
     @ApiMessage("Get all suppliers")
     public ResponseEntity<ResultPaginationDTO> getSuppliers(
@@ -101,7 +100,6 @@ public class SupplierController {
         return ResponseEntity.ok(null);
     }
 
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/{id}")
     @ApiMessage("Lấy nhà cung cấp theo ID thành công")
     public ResponseEntity<Supplier> getSupplierById(@PathVariable("id") Long id) throws IdInvalidException {
@@ -112,7 +110,6 @@ public class SupplierController {
         return ResponseEntity.ok(supplier);
     }
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/{id}/categories")
     @ApiMessage("Get categories of supplier")
     public ResponseEntity<List<Category>> getSupplierCategories(@PathVariable("id") Long id) throws IdInvalidException {
