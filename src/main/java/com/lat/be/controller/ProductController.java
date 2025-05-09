@@ -31,7 +31,6 @@ public class ProductController {
     private final ProductService productService;
     private final ProductMapper productMapper;
 
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("")
     @ApiMessage("Lấy danh sách sản phẩm")
     public ResponseEntity<ResultPaginationDTO> fetchAllProduct(
@@ -42,7 +41,6 @@ public class ProductController {
         return ResponseEntity.ok(rs);
     }
 
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/{id}")
     @ApiMessage("Lấy sản phẩm theo ID")
     public ResponseEntity<Product> getProduct(
@@ -114,7 +112,6 @@ public class ProductController {
     }
 
     // Lấy sản phẩm theo danh mục
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/category/{categoryId}")
     @ApiMessage("Lấy sản phẩm theo danh mục")
     public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable("categoryId") Long categoryId) throws IdInvalidException {
@@ -122,7 +119,6 @@ public class ProductController {
     }
 
     // Lấy sản phẩm theo nhà cung cấp
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @GetMapping("/supplier/{supplierId}")
     @ApiMessage("Lấy sản phẩm theo nhà cung cấp")
     public ResponseEntity<List<Product>> getProductsBySupplier(@PathVariable("supplierId") Long supplierId) throws IdInvalidException {
