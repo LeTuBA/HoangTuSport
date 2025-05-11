@@ -101,6 +101,22 @@ public class UserService {
         return currentUser;
     }
 
+    public User handleUpdateUserProfile(UpdateUserDTO reqUser, MultipartFile avatarFile) {
+        User currentUser = this.getCurrentUser();
+        if (currentUser!=null) {
+            currentUser.setAddress(reqUser.getAddress());
+            currentUser.setGender(reqUser.getGender());
+            currentUser.setName(reqUser.getName());
+
+            if(avatarFile != null && !avatarFile.isEmpty()){
+                String avatarUrl = this.cloudinaryService.uploadImage(avatarFile);
+                currentUser.setAvatar(avatarUrl);
+            }
+        }
+        currentUser = this.userRepository.save(currentUser);
+        return currentUser;
+    }
+
     public User handleGetUserByEmail(String email) {
         return this.userRepository.findByEmail(email);
     }
@@ -158,6 +174,7 @@ public class UserService {
         resUserDTO.setCreatedAt(user.getCreatedAt());
         resUserDTO.setGender(user.getGender());
         resUserDTO.setAddress(user.getAddress());
+        resUserDTO.setAvatar(user.getAvatar());
 
         if(user.getRole() != null){
             roleUser.setId(user.getRole().getId());

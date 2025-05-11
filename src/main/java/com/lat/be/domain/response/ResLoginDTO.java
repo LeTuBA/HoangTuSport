@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.lat.be.domain.Role;
+import com.lat.be.util.constant.GenderEnum;
 
 @Getter
 @Setter
@@ -27,6 +28,9 @@ public class ResLoginDTO {
         private String email;
         private String name;
         private Role role;
+        private String avatar;
+        private String address;
+        private GenderEnum gender;
     }
 
     @Getter
