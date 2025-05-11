@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+# Environment variables
+.env
+
 # Private individual user cursor rules
 .cursor/rules/_*.mdc
 
