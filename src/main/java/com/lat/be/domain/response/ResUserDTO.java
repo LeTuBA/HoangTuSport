@@ -23,6 +23,7 @@ public class ResUserDTO {
     Instant updatedAt;
     Instant createdAt;
     RoleUser role;
+    String avatar;
 
     @Getter
     @Setter

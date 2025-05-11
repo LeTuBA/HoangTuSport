@@ -21,5 +21,4 @@ public class ResUpdateUserDTO {
     String address;
     Instant updatedAt;
     String avatar;
-
 }
