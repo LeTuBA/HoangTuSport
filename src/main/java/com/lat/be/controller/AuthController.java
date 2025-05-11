@@ -58,7 +58,10 @@ public class AuthController {
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getName(),
-                    currentUserDB.getRole()
+                    currentUserDB.getRole(),
+                    currentUserDB.getAvatar(),
+                    currentUserDB.getAddress(),
+                    currentUserDB.getGender()
             );
             res.setUser(userLogin);
         }
@@ -81,7 +84,9 @@ public class AuthController {
 
         res.setRefreshToken(refresh_token);
 
+
         return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, resCookies.toString())
                 .body(res);
 
 
@@ -101,6 +106,9 @@ public class AuthController {
             userLogin.setId(currentUser.getId());
             userLogin.setEmail(currentUser.getEmail());
             userLogin.setName(currentUser.getName());
+            userLogin.setAvatar(currentUser.getAvatar());
+            userLogin.setAddress(currentUser.getAddress());
+            userLogin.setGender(currentUser.getGender());
             userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok(userGetAccount);
@@ -134,7 +142,10 @@ public class AuthController {
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getName(),
-                    currentUserDB.getRole()
+                    currentUserDB.getRole(),
+                    currentUserDB.getAvatar(),
+                    currentUserDB.getAddress(),
+                    currentUserDB.getGender()
             );
             res.setUser(userLogin);
         }
