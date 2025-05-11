@@ -43,12 +43,7 @@ public class SecurityConfiguration {
         String[] whiteList = {
                 "/",
                 "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register",
-<<<<<<< HEAD
-                "/api/payment/vnpay-return",
-                "/api/v1/users/"
-=======
                 "/api/payment/vnpay-return"
->>>>>>> bf2ad9223f0f2ba26526ed74060f3c26d2a2a178
         };
 
         http
