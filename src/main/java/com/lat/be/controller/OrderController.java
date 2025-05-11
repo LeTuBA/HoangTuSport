@@ -150,7 +150,7 @@ public class OrderController {
     @PostMapping("/{id}/update-payment-status")
     @PreAuthorize("hasAnyRole('admin', 'employee')")
     @ApiMessage("Cập nhật trạng thái thanh toán thành công")
-    public ResponseEntity<?> updatePaymentStatus(
+    public ResponseEntity<Order> updatePaymentStatus(
             @PathVariable("id") Long id,
             @RequestParam("paymentStatus") PaymentStatus paymentStatus) {
         
@@ -171,7 +171,7 @@ public class OrderController {
             order.setPaymentMessage("Đã hoàn tiền");
         }
         
-        Order updatedOrder = orderService.updateOrder(order);
+        Order updatedOrder = this.orderService.updateOrder(order);
         return ResponseEntity.ok(updatedOrder);
     }
 } 

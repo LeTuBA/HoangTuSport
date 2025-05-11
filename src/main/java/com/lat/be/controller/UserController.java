@@ -101,4 +101,14 @@ public class UserController {
         }
         return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(userUpdate));
     }
+
+    @PutMapping("/profile")
+    @ApiMessage("Update profile")
+    public ResponseEntity<ResUpdateUserDTO> updateProfile(
+        @Valid @ModelAttribute UpdateUserDTO formRequest,
+        @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
+    ) throws IdInvalidException {
+        User userUpdate = this.userService.handleUpdateUserProfile(formRequest, avatarFile);
+        return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(userUpdate));
+    }
 }
