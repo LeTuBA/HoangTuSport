@@ -22,7 +22,7 @@ import com.lat.be.repository.OrderDetailRepository;
 import com.lat.be.repository.OrderRepository;
 import com.lat.be.repository.ProductRepository;
 import com.lat.be.util.constant.PaymentStatus;
-
+import com.lat.be.util.constant.OrderStatus;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -62,6 +62,7 @@ public class OrderService {
                 .phone(createOrderDTO.getPhone())
                 .address(createOrderDTO.getAddress())
                 .paymentStatus(PaymentStatus.PENDING)
+                .orderStatus(OrderStatus.PENDING)
                 .createdAt(Instant.now())
                 .createdBy(currentUser.getEmail())
                 .build();
@@ -109,7 +110,7 @@ public class OrderService {
     }
     
     public ResultPaginationDTO getAllOrders(Specification<Order> orderSpec, Pageable pageable) {
-        Page<Order> orderPage = orderRepository.findAll(orderSpec, pageable);
+        Page<Order> orderPage = this.orderRepository.findAll(orderSpec, pageable);
         
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
