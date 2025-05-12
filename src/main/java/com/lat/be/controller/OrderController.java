@@ -19,6 +19,7 @@ import com.lat.be.domain.request.UpdateOrderStatus;
 import com.lat.be.domain.request.UpdatePaymentStatus;
 import com.lat.be.domain.response.OrderResponse;
 import com.lat.be.domain.response.ResultPaginationDTO;
+import com.lat.be.domain.response.OrderWithItemsDTO;
 import com.lat.be.service.OrderService;
 import com.lat.be.service.UserService;
 import com.lat.be.service.VNPayService;
@@ -28,6 +29,7 @@ import com.lat.be.util.constant.PaymentStatus;
 import com.lat.be.util.constant.OrderStatus;
 import com.turkraft.springfilter.boot.Filter;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -42,7 +44,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @PostMapping
     @ApiMessage("Tạo đơn hàng từ giỏ hàng thành công")
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderDTO createOrderDTO) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderDTO createOrderDTO, HttpServletRequest request) {
         try {
             Order order = orderService.createOrder(createOrderDTO);
             
@@ -59,10 +61,15 @@ public class OrderController {
             } else if (order.getPaymentMethod() == PaymentMethod.TRANSFER) {
                 // Nếu là TRANSFER, tạo URL thanh toán VNPay
                 String orderInfo = "Thanh toan don hang: " + order.getId();
+                
+                // Lấy IP của khách hàng
+                String clientIp = getClientIpAddress(request);
+                
                 String paymentUrl = vnPayService.createPaymentUrl(
                     order.getId(), 
                     order.getTotalPrice(), 
-                    orderInfo
+                    orderInfo,
+                    clientIp
                 );
                 
                 order.setPaymentStatus(PaymentStatus.PENDING);
@@ -78,6 +85,30 @@ public class OrderController {
         } catch (RuntimeException e) {
             throw new RuntimeException("Lỗi khi tạo đơn hàng: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Lấy địa chỉ IP của client từ request
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        }
+        
+        // Trong trường hợp client đang chạy trong proxy hoặc có nhiều địa chỉ IP
+        if (ipAddress != null && ipAddress.contains(",")) {
+            // Lấy địa chỉ IP đầu tiên
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        
+        return ipAddress;
     }
     
     @PreAuthorize("hasAnyRole('admin', 'employee')")
@@ -103,10 +134,16 @@ public class OrderController {
     @GetMapping("/my-orders")
     @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy danh sách đơn hàng của tôi thành công")
-    public ResponseEntity<List<Order>> getMyOrders() {
-        User currentUser = userService.getCurrentUser();
-        List<Order> myOrders = orderService.getOrdersByUser(currentUser);
-        return ResponseEntity.ok(myOrders);
+    public ResponseEntity<List<OrderWithItemsDTO>> getMyOrders() {
+        User currentUser = this.userService.getCurrentUser();
+        List<Order> myOrders = this.orderService.getOrdersWithDetailsByUser(currentUser);
+        
+        // Chuyển đổi List<Order> thành List<OrderWithItemsDTO>
+        List<OrderWithItemsDTO> ordersWithItems = myOrders.stream()
+                .map(OrderWithItemsDTO::fromOrder)
+                .toList();
+
+        return ResponseEntity.ok(ordersWithItems);
     }
     
     @GetMapping("/{id}/details")
@@ -120,7 +157,7 @@ public class OrderController {
     @GetMapping("/{id}/payment-url")
     @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy URL thanh toán cho đơn hàng thành công")
-    public ResponseEntity<?> getPaymentUrl(@PathVariable("id") Long id) {
+    public ResponseEntity<?> getPaymentUrl(@PathVariable("id") Long id, HttpServletRequest request) {
         Order order = orderService.getOrderById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
         
@@ -138,9 +175,12 @@ public class OrderController {
             return ResponseEntity.ok(response);
         }
         
+        // Lấy IP của khách hàng
+        String clientIp = getClientIpAddress(request);
+        
         // Tạo URL thanh toán mới
         String orderInfo = "Thanh toan don hang: " + order.getId();
-        String paymentUrl = vnPayService.createPaymentUrl(order.getId(), order.getTotalPrice(), orderInfo);
+        String paymentUrl = vnPayService.createPaymentUrl(order.getId(), order.getTotalPrice(), orderInfo, clientIp);
         
         // Cập nhật đơn hàng với URL thanh toán
         order.setPaymentUrl(paymentUrl);
