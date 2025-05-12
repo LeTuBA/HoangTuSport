@@ -5,6 +5,7 @@ WORKDIR /app
 
 # skip test
 RUN gradle clean build -x test --no-daemon
+RUN apk add --no-cache curl
 
 # Stage 2: run application
 FROM eclipse-temurin:17-jre
