@@ -129,6 +129,24 @@ public class OrderService {
         return orderRepository.findByUser(user);
     }
     
+    /**
+     * Lấy danh sách đơn hàng kèm theo thông tin chi tiết về các sản phẩm
+     * @param user Người dùng
+     * @return Danh sách đơn hàng
+     */
+    public List<Order> getOrdersWithDetailsByUser(User user) {
+        List<Order> orders = orderRepository.findByUser(user);
+        
+        // Đảm bảo rằng danh sách chi tiết đơn hàng được khởi tạo
+        for (Order order : orders) {
+            if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+                order.setOrderDetails(orderDetailRepository.findByOrder(order));
+            }
+        }
+        
+        return orders;
+    }
+    
     public List<OrderDetail> getOrderDetails(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + orderId));

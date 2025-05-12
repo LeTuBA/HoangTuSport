@@ -14,6 +14,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Component
 @Configuration
@@ -41,6 +44,9 @@ public class VNPayConfig {
     @Value("${vnpay.command:pay}")
     private String vnpCommand;
 
+    @Value("${vnpay.ip-addr:127.0.0.1}")
+    private String vnpIpAddr;
+
     public String hmacSHA512(String key, String data) {
         try {
             Mac sha512_HMAC = Mac.getInstance("HmacSHA512");
@@ -61,36 +67,46 @@ public class VNPayConfig {
         return builder.toString();
     }
     
-    public String createPaymentUrl(Long orderId, long amount, String orderInfo) {
+    public String createPaymentUrl(Long orderId, long amount, String orderInfo, String ipAddress) {
         String vnp_TxnRef = orderId.toString();
-        String vnp_TmnCode = getVnpTmnCode();
         
         Map<String, String> vnp_Params = new HashMap<>();
-        vnp_Params.put("vnp_Version", getVnpVersion());
-        vnp_Params.put("vnp_Command", getVnpCommand());
-        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
+        vnp_Params.put("vnp_Version", vnpVersion);
+        vnp_Params.put("vnp_Command", vnpCommand);
+        vnp_Params.put("vnp_TmnCode", vnpTmnCode);
         vnp_Params.put("vnp_Amount", String.valueOf(amount * 100)); // Amount in VND, convert to smallest unit (100 đồng)
         vnp_Params.put("vnp_CurrCode", "VND");
         
-        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", orderInfo);
-        vnp_Params.put("vnp_OrderType", "other"); // Default value: other
-        vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", getVnpReturnUrl());
-        vnp_Params.put("vnp_IpAddr", "127.0.0.1");
+        // Đảm bảo orderInfo không chứa ký tự đặc biệt, để tránh lỗi định dạng
+        String safeOrderInfo = "Thanh toan don hang " + orderId;
         
-        // Add current time
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        String vnp_CreateDate = formatter.format(cld.getTime());
+        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
+        vnp_Params.put("vnp_OrderInfo", safeOrderInfo);
+        vnp_Params.put("vnp_OrderType", "200000"); // Mã cho hàng hóa thương mại điện tử
+        vnp_Params.put("vnp_Locale", "vn");
+        vnp_Params.put("vnp_ReturnUrl", vnpReturnUrl);
+        vnp_Params.put("vnp_IpAddr", ipAddress);
+        
+        // Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
+        ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDateTime vietnamNow = LocalDateTime.now(vietnamZone);
+        
+        // In ra thời gian hiện tại để debug
+        System.out.println("Current time in Vietnam: " + vietnamNow.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        
+        // Chuyển đổi thành định dạng yyyyMMddHHmmss cho VNPay
+        String vnp_CreateDate = vietnamNow.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
         
-        // Add expiry date
-        cld.add(Calendar.MINUTE, 15);
-        String vnp_ExpireDate = formatter.format(cld.getTime());
+        // Thêm thời gian hết hạn (15 phút)
+        LocalDateTime expireTime = vietnamNow.plusMinutes(15);
+        String vnp_ExpireDate = expireTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
         
-        // Build query string
+        // Debug thời gian tạo và hết hạn
+        System.out.println("VNPay Create Date: " + vnp_CreateDate + " | Expire Date: " + vnp_ExpireDate);
+        
+        // Xây dựng chuỗi query và hash
         StringBuilder query = new StringBuilder();
         StringBuilder hashData = new StringBuilder();
         
@@ -102,12 +118,12 @@ public class VNPayConfig {
             String fieldName = itr.next();
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data
+                // Xây dựng hash data
                 hashData.append(fieldName);
                 hashData.append('=');
                 try {
                     hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                    // Build query
+                    // Xây dựng query
                     query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
                     query.append('=');
                     query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
@@ -123,10 +139,25 @@ public class VNPayConfig {
         }
         
         String queryUrl = query.toString();
-        String vnp_SecureHash = hmacSHA512(getVnpHashSecret(), hashData.toString());
+        String vnp_SecureHash = hmacSHA512(vnpHashSecret, hashData.toString());
         queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
         
-        return getVnpPayUrl() + "?" + queryUrl;
+        // Đảm bảo vnpPayUrl có giá trị
+        if (vnpPayUrl == null || vnpPayUrl.isEmpty()) {
+            vnpPayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+        }
+        
+        // Tạo URL đầy đủ
+        String fullUrl = vnpPayUrl + "?" + queryUrl;
+        
+        // In ra URL để debug - đảm bảo in đủ URL
+        System.out.println("VNPay URL (FULL): " + fullUrl);
+        
+        return fullUrl;
+    }
+    
+    public String createPaymentUrl(Long orderId, long amount, String orderInfo) {
+        return createPaymentUrl(orderId, amount, orderInfo, vnpIpAddr);
     }
     
     public boolean validateReturnData(Map<String, String> vnp_Params) {
@@ -163,7 +194,7 @@ public class VNPayConfig {
             }
         }
         
-        String checkSum = hmacSHA512(getVnpHashSecret(), hashData.toString());
+        String checkSum = hmacSHA512(vnpHashSecret, hashData.toString());
         return checkSum.equals(vnp_SecureHash);
     }
 } 

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import com.lat.be.util.SecurityUtil;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.Instant;
 // import java.util.List;
@@ -37,6 +38,7 @@ public class OrderDetail {
 
     @ManyToOne
     @JoinColumn(name = "order_id")
+    @JsonIgnore
     Order order;
 
     @ManyToOne
