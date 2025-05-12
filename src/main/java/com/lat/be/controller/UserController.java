@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.lat.be.domain.User;
+import com.lat.be.domain.request.ChangePasswordDTO;
 import com.lat.be.domain.request.CreateUserDTO;
 import com.lat.be.domain.request.UpdateUserDTO;
 import com.lat.be.domain.response.ResUpdateUserDTO;
@@ -23,6 +24,7 @@ import com.lat.be.domain.response.ResCreateUserDTO;
 import com.lat.be.service.UserService;
 import com.lat.be.util.annotation.ApiMessage;
 import com.lat.be.util.error.IdInvalidException;
+import com.lat.be.util.SecurityUtil;
 
 @RestController
 @RequiredArgsConstructor
@@ -110,5 +112,16 @@ public class UserController {
     ) throws IdInvalidException {
         User userUpdate = this.userService.handleUpdateUserProfile(formRequest, avatarFile);
         return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(userUpdate));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/change-password")
+    @ApiMessage("Đổi mật khẩu thành công")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
+        String username = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người dùng hiện tại"));
+
+        this.userService.changePassword(username, changePasswordDTO);
+        return ResponseEntity.ok().build();
     }
 }

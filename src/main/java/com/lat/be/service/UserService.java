@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.lat.be.domain.Role;
 import com.lat.be.domain.User;
+import com.lat.be.domain.request.ChangePasswordDTO;
 import com.lat.be.domain.request.CreateUserDTO;
 import com.lat.be.domain.request.UpdateUserDTO;
 import com.lat.be.domain.response.ResCreateUserDTO;
@@ -17,11 +18,14 @@ import com.lat.be.domain.response.ResUserDTO;
 import com.lat.be.domain.response.ResultPaginationDTO;
 import com.lat.be.repository.UserRepository;
 import com.lat.be.util.SecurityUtil;
+import com.lat.be.util.error.InvalidPasswordException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final CloudinaryService cloudinaryService;
+    private final PasswordEncoder passwordEncoder;
 
 
     public User handleCreateUser(User user, MultipartFile avatarFile) {
@@ -208,5 +213,29 @@ public class UserService {
 
     public User getUserByRefreshTokenAndEmail(String token, String email){
         return this.userRepository.findByRefreshTokenAndEmail(token, email);
+    }
+
+
+    @Transactional
+    public void changePassword(String username, ChangePasswordDTO changePasswordDTO) {
+        // Kiểm tra mật khẩu mới và xác nhận mật khẩu có khớp nhau
+        if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmPassword())) {
+            throw new InvalidPasswordException("Mật khẩu mới và xác nhận mật khẩu không khớp");
+        }
+
+        // Lấy thông tin user
+        User user = this.userRepository.findByEmail(username);
+        if(user == null){
+            throw new EntityNotFoundException("Không tìm thấy người dùng");
+        }
+
+        // Kiểm tra mật khẩu cũ có đúng không
+        if (!passwordEncoder.matches(changePasswordDTO.getOldPassword(), user.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu cũ không đúng");
+        }
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
+        this.userRepository.save(user);
     }
 }
