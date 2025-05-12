@@ -127,7 +127,7 @@ public class OrderController {
         return ipAddress;
     }
     
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @GetMapping
     @ApiMessage("Lấy danh sách đơn hàng thành công")
     public ResponseEntity<ResultPaginationDTO> getAllOrders(
