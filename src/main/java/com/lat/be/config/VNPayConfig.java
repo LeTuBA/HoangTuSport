@@ -84,7 +84,17 @@ public class VNPayConfig {
         vnp_Params.put("vnp_OrderInfo", safeOrderInfo);
         vnp_Params.put("vnp_OrderType", "200000"); // Mã cho hàng hóa thương mại điện tử
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", vnpReturnUrl);
+        
+        // Tạo ReturnUrl đầy đủ với orderId
+        String fullReturnUrl = vnpReturnUrl;
+        // Kiểm tra xem return url đã có dấu "/" ở cuối chưa
+        if (!fullReturnUrl.endsWith("/")) {
+            fullReturnUrl += "/";
+        }
+        // Thêm orderId vào return url
+        fullReturnUrl += orderId;
+        
+        vnp_Params.put("vnp_ReturnUrl", fullReturnUrl);
         vnp_Params.put("vnp_IpAddr", ipAddress);
         
         // Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)

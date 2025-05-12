@@ -32,6 +32,7 @@ import com.turkraft.springfilter.boot.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -40,6 +41,9 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final VNPayService vnPayService;
+    
+    @Value("${frontend.confirmation-url:http://localhost:3000/confirmation}")
+    private String frontendConfirmationUrl;
     
     @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @PostMapping
@@ -83,6 +87,14 @@ public class OrderController {
                 orderService.updateOrder(order);
                 
                 response.setPaymentUrl(paymentUrl);
+                
+                // Thêm đường dẫn đến trang confirmation vào response
+                String confirmationUrl = frontendConfirmationUrl;
+                if (!confirmationUrl.endsWith("/")) {
+                    confirmationUrl += "/";
+                }
+                confirmationUrl += order.getId();
+                response.setConfirmationUrl(confirmationUrl);
             }
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);

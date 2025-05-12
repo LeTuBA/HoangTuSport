@@ -35,9 +35,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public class PaymentController {
     private final VNPayService vnPayService;
     private final OrderService orderService;
-    
-    @Value("${frontend.payment-result-url:http://localhost:3000/payment-result}")
-    private String frontendPaymentResultUrl;
+
+    @Value("${frontend.confirmation-url:http://localhost:3000/confirmation}")
+    private String frontendConfirmationUrl;
 
     @GetMapping("/create-payment/{orderId}")
     @ApiMessage("Tạo URL thanh toán cho đơn hàng thành công")
@@ -111,25 +111,21 @@ public class PaymentController {
         
         // Redirect URL depends on payment result
         String redirectUrl;
+        String orderId = params.getOrDefault("vnp_TxnRef", "unknown");
         
         if (processedOrder.isPresent()) {
             // Payment successful
             Order order = processedOrder.get();
-            String message = "";
-            
-            // Add payment message to redirect URL if available
-            if (order.getPaymentMessage() != null && !order.getPaymentMessage().isEmpty()) {
-                try {
-                    message = "&message=" + URLEncoder.encode(order.getPaymentMessage(), StandardCharsets.UTF_8.toString());
-                } catch (UnsupportedEncodingException e) {
-                    log.error("Error encoding payment message", e);
-                }
+            // Chuyển hướng đến trang confirmation với trạng thái success
+            try {
+                String message = URLEncoder.encode("Thanh toán thành công", StandardCharsets.UTF_8.toString());
+                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success&message=" + message;
+            } catch (UnsupportedEncodingException e) {
+                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success";
+                log.error("Error encoding success message", e);
             }
-            
-            redirectUrl = frontendPaymentResultUrl + "?status=success&orderId=" + order.getId() + message;
         } else {
             // Payment failed
-            String orderId = params.getOrDefault("vnp_TxnRef", "unknown");
             String responseCode = params.getOrDefault("vnp_ResponseCode", "99");
             String errorMessage;
             
@@ -176,10 +172,9 @@ public class PaymentController {
             }
             
             try {
-                redirectUrl = frontendPaymentResultUrl + "?status=failed&orderId=" + orderId + 
-                        "&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
+                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
             } catch (UnsupportedEncodingException e) {
-                redirectUrl = frontendPaymentResultUrl + "?status=failed&orderId=" + orderId;
+                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed";
                 log.error("Error encoding error message", e);
             }
         }
