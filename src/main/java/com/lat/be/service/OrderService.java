@@ -106,7 +106,7 @@ public class OrderService {
     }
     
     public Optional<Order> getOrderById(Long id) {
-        return orderRepository.findById(id);
+        return this.orderRepository.findById(id);
     }
     
     public ResultPaginationDTO getAllOrders(Specification<Order> orderSpec, Pageable pageable) {
