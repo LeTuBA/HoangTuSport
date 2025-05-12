@@ -36,8 +36,8 @@ public class PaymentController {
     private final VNPayService vnPayService;
     private final OrderService orderService;
 
-    @Value("${frontend.confirmation-url:http://localhost:3000/confirmation}")
-    private String frontendConfirmationUrl;
+    @Value("${vnpay.pay-url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
+    private String vnpPayUrl;
 
     @GetMapping("/create-payment/{orderId}")
     @ApiMessage("Tạo URL thanh toán cho đơn hàng thành công")
@@ -119,9 +119,9 @@ public class PaymentController {
             // Chuyển hướng đến trang confirmation với trạng thái success
             try {
                 String message = URLEncoder.encode("Thanh toán thành công", StandardCharsets.UTF_8.toString());
-                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success&message=" + message;
+                redirectUrl = vnpPayUrl + "/" + order.getId() + "?status=success&message=" + message;
             } catch (UnsupportedEncodingException e) {
-                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success";
+                redirectUrl = vnpPayUrl + "/" + order.getId() + "?status=success";
                 log.error("Error encoding success message", e);
             }
         } else {
@@ -172,9 +172,9 @@ public class PaymentController {
             }
             
             try {
-                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
+                redirectUrl = vnpPayUrl + "/" + orderId + "?status=failed&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
             } catch (UnsupportedEncodingException e) {
-                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed";
+                redirectUrl = vnpPayUrl + "/" + orderId + "?status=failed";
                 log.error("Error encoding error message", e);
             }
         }
