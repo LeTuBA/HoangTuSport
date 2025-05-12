@@ -15,6 +15,7 @@ import com.lat.be.domain.Order;
 import com.lat.be.domain.OrderDetail;
 import com.lat.be.domain.User;
 import com.lat.be.domain.request.CreateOrderDTO;
+import com.lat.be.domain.request.UpdateOrderStatus;
 import com.lat.be.domain.response.OrderResponse;
 import com.lat.be.domain.response.ResultPaginationDTO;
 import com.lat.be.service.OrderService;
@@ -23,6 +24,7 @@ import com.lat.be.service.VNPayService;
 import com.lat.be.util.annotation.ApiMessage;
 import com.lat.be.util.constant.PaymentMethod;
 import com.lat.be.util.constant.PaymentStatus;
+import com.lat.be.util.constant.OrderStatus;
 import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
@@ -63,6 +65,7 @@ public class OrderController {
                 );
                 
                 order.setPaymentStatus(PaymentStatus.PENDING);
+                order.setOrderStatus(OrderStatus.PENDING);
                 order.setPaymentMessage("Vui lòng thanh toán để hoàn tất đơn hàng");
                 order.setPaymentUrl(paymentUrl);
                 orderService.updateOrder(order);
@@ -147,27 +150,28 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
     
-    @PostMapping("/{id}/update-payment-status")
+    @PutMapping("/{id}/update-payment-status")
     @PreAuthorize("hasAnyRole('admin', 'employee')")
     @ApiMessage("Cập nhật trạng thái thanh toán thành công")
     public ResponseEntity<Order> updatePaymentStatus(
             @PathVariable("id") Long id,
-            @RequestParam("paymentStatus") PaymentStatus paymentStatus) {
+            @RequestBody UpdateOrderStatus updateOrderStatus) {
         
         Order order = orderService.getOrderById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
         
         // Update payment status
-        order.setPaymentStatus(paymentStatus);
+        order.setPaymentStatus(updateOrderStatus.getPaymentStatus());
+        order.setOrderStatus(updateOrderStatus.getOrderStatus());
         
         // Add payment message
-        if (paymentStatus == PaymentStatus.PAID) {
+        if (updateOrderStatus.getPaymentStatus() == PaymentStatus.PAID) {
             order.setPaymentMessage("Thanh toán thành công");
-        } else if (paymentStatus == PaymentStatus.FAILED) {
+        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.FAILED) {
             order.setPaymentMessage("Thanh toán thất bại");
-        } else if (paymentStatus == PaymentStatus.PENDING) {
+        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.PENDING) {
             order.setPaymentMessage("Đang chờ thanh toán");
-        } else if (paymentStatus == PaymentStatus.REFUNDED) {
+        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.REFUNDED) {
             order.setPaymentMessage("Đã hoàn tiền");
         }
         

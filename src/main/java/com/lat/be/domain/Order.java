@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lat.be.util.SecurityUtil;
 import com.lat.be.util.constant.PaymentMethod;
 import com.lat.be.util.constant.PaymentStatus;
+import com.lat.be.util.constant.OrderStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,7 +37,11 @@ public class Order {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", length = 20)
     PaymentStatus paymentStatus;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", length = 20)
+    OrderStatus orderStatus;
+
     @Column(columnDefinition = "MEDIUMTEXT")
     String paymentUrl;
     String transactionNo;
