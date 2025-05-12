@@ -139,6 +139,7 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy thông tin đơn hàng thành công")
     public ResponseEntity<Order> getOrderById(@PathVariable("id") Long id) {
         Order order = this.orderService.getOrderById(id)
@@ -147,6 +148,7 @@ public class OrderController {
     }
     
     @GetMapping("/my-orders")
+    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy danh sách đơn hàng của tôi thành công")
     public ResponseEntity<List<OrderWithItemsDTO>> getMyOrders() {
         User currentUser = this.userService.getCurrentUser();
