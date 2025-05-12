@@ -5,17 +5,19 @@ WORKDIR /app
 
 # skip test
 RUN gradle clean build -x test --no-daemon
-RUN apk add --no-cache curl
 
 # Stage 2: run application
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # copy file jar
 COPY --from=build /app/build/libs/*.jar app.jar
 
-# open application port - change to port 8888
+# open application port
 EXPOSE 8080
 
-# run application with docker profile
+# run application
 ENTRYPOINT ["java", "-jar", "app.jar"] 
