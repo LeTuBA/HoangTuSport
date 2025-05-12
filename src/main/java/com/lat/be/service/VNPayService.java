@@ -25,7 +25,8 @@ public class VNPayService {
     }
     
     public String createPaymentUrl(Long orderId, long amount, String orderInfo, String ipAddress) {
-        return vnPayConfig.createPaymentUrl(orderId, amount, orderInfo, ipAddress);
+        String vnpTxnRef = orderId + "-" + System.currentTimeMillis();
+        return vnPayConfig.createPaymentUrl(orderId, vnpTxnRef, amount, orderInfo, ipAddress);
     }
 
     public Optional<Order> processPaymentReturn(Map<String, String> vnpParams) {
@@ -37,17 +38,16 @@ public class VNPayService {
 
         // Lấy thông tin thanh toán
         String vnpResponseCode = vnpParams.get("vnp_ResponseCode");
-        String orderId = vnpParams.get("vnp_TxnRef");
-        
-        log.info("Processing VNPay payment return - Order ID: {}, Response Code: {}", orderId, vnpResponseCode);
+        String vnpTxnRef = vnpParams.get("vnp_TxnRef");
+        String orderId = vnpTxnRef.split("-")[0]; // lấy orderId gốc
+        log.info("Processing VNPay payment return - vnpTxnRef: {}, orderId: {}, Response Code: {}", vnpTxnRef, orderId, vnpResponseCode);
 
-        // Tìm đơn hàng
+        // Tìm đơn hàng theo orderId
         Optional<Order> orderOpt = orderRepository.findById(Long.parseLong(orderId));
         if (orderOpt.isEmpty()) {
-            log.error("Order not found: {}", orderId);
+            log.error("Order not found with orderId: {} (from vnpTxnRef: {})", orderId, vnpTxnRef);
             return Optional.empty();
         }
-
         Order order = orderOpt.get();
         
         // Tránh xử lý trùng lặp đơn hàng đã thanh toán

@@ -65,30 +65,21 @@ public class OrderController {
             } else if (order.getPaymentMethod() == PaymentMethod.TRANSFER) {
                 // Nếu là TRANSFER, tạo URL thanh toán VNPay
                 String orderInfo = "Thanh toan don hang: " + order.getId();
-                
-                // Lấy IP của khách hàng
                 String clientIp = getClientIpAddress(request);
-
-
                 Long totalPrice = (order.getTotalPrice() * 26000);
                 Long roundedTotalPrice = (long) (Math.ceil(totalPrice / 10000.0) * 10000);
-                
                 String paymentUrl = vnPayService.createPaymentUrl(
                     order.getId(),
                     roundedTotalPrice,
                     orderInfo,
                     clientIp
                 );
-                
                 order.setPaymentStatus(PaymentStatus.PENDING);
                 order.setOrderStatus(OrderStatus.PENDING);
                 order.setPaymentMessage("Vui lòng thanh toán để hoàn tất đơn hàng");
                 order.setPaymentUrl(paymentUrl);
                 orderService.updateOrder(order);
-                
                 response.setPaymentUrl(paymentUrl);
-                
-                // Thêm đường dẫn đến trang confirmation vào response
                 String confirmationUrl = frontendConfirmationUrl;
                 if (!confirmationUrl.endsWith("/")) {
                     confirmationUrl += "/";
