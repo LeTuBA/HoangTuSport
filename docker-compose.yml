@@ -26,6 +26,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 2
+    networks:
+      - hoangtu-network
 
   db:
     container_name: hoangtu-db
@@ -45,7 +47,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 2
+    networks:
+      - hoangtu-network
 
 volumes:
   mysql-data:
     driver: local
+
+networks:
+  hoangtu-network:
+    driver: bridge
+    external: true
