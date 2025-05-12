@@ -21,11 +21,13 @@ services:
       - FRONTEND_CONFIRMATION_URL=${FRONTEND_CONFIRMATION_URL}
     ports:
       - "8080:8080"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 2
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+    #   interval: 5s
+    #   timeout: 3s
+    #   retries: 2
+    networks:
+      - hoangtu-network
 
   db:
     container_name: hoangtu-db
@@ -45,7 +47,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 2
+    networks:
+      - hoangtu-network
 
 volumes:
   mysql-data:
     driver: local
+
+networks:
+  hoangtu-network:
+    driver: bridge
+    external: true
