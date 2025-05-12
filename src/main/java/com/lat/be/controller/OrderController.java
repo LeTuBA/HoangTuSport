@@ -16,6 +16,7 @@ import com.lat.be.domain.OrderDetail;
 import com.lat.be.domain.User;
 import com.lat.be.domain.request.CreateOrderDTO;
 import com.lat.be.domain.request.UpdateOrderStatus;
+import com.lat.be.domain.request.UpdatePaymentStatus;
 import com.lat.be.domain.response.OrderResponse;
 import com.lat.be.domain.response.ResultPaginationDTO;
 import com.lat.be.service.OrderService;
@@ -155,27 +156,42 @@ public class OrderController {
     @ApiMessage("Cập nhật trạng thái thanh toán thành công")
     public ResponseEntity<Order> updatePaymentStatus(
             @PathVariable("id") Long id,
-            @RequestBody UpdateOrderStatus updateOrderStatus) {
+            @RequestBody UpdatePaymentStatus updatePaymentStatus) {
         
         Order order = orderService.getOrderById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
         
         // Update payment status
-        order.setPaymentStatus(updateOrderStatus.getPaymentStatus());
-        order.setOrderStatus(updateOrderStatus.getOrderStatus());
+        order.setPaymentStatus(updatePaymentStatus.getPaymentStatus());
         
         // Add payment message
-        if (updateOrderStatus.getPaymentStatus() == PaymentStatus.PAID) {
+        if (updatePaymentStatus.getPaymentStatus() == PaymentStatus.PAID) {
             order.setPaymentMessage("Thanh toán thành công");
-        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.FAILED) {
+        } else if (updatePaymentStatus.getPaymentStatus() == PaymentStatus.FAILED) {
             order.setPaymentMessage("Thanh toán thất bại");
-        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.PENDING) {
+        } else if (updatePaymentStatus.getPaymentStatus() == PaymentStatus.PENDING) {
             order.setPaymentMessage("Đang chờ thanh toán");
-        } else if (updateOrderStatus.getPaymentStatus() == PaymentStatus.REFUNDED) {
+        } else if (updatePaymentStatus.getPaymentStatus() == PaymentStatus.REFUNDED) {
             order.setPaymentMessage("Đã hoàn tiền");
         }
         
         Order updatedOrder = this.orderService.updateOrder(order);
         return ResponseEntity.ok(updatedOrder);
     }
+
+    @PutMapping("/{id}/update-order-status")
+    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @ApiMessage("Cập nhật trạng thái đơn hàng thành công")
+    public ResponseEntity<Order> updateOrderStatus(
+            @PathVariable("id") Long id,
+            @RequestBody UpdateOrderStatus updateOrderStatus) {
+        Order order = orderService.getOrderById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
+
+        order.setOrderStatus(updateOrderStatus.getOrderStatus());
+        Order updatedOrder = this.orderService.updateOrder(order);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    
 } 

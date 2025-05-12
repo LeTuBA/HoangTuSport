@@ -1,12 +1,9 @@
 package com.lat.be.domain.request;
 
+import com.lat.be.util.constant.OrderStatus;
 import lombok.Data;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UpdateOrderStatus {
-    private String orderStatus;
-    private String paymentStatus;
+    private OrderStatus orderStatus;
 }
