@@ -34,7 +34,7 @@ cloudinary:
 
 vnpay:
   pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-  return-url: ${VNPAY_RETURN_URL:http://192.168.1.102:5173/api/v1/payment/vnpay-return}
+  return-url: ${VNPAY_RETURN_URL:http://192.168.1.102:5173/confirmation}
   tmn-code: ${VNPAY_TMN_CODE:YOURCODE}
   hash-secret: ${VNPAY_HASH_SECRET:YOURHASHSECRET}
   api-url: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
@@ -44,3 +44,4 @@ vnpay:
 
 frontend:
   payment-result-url: ${FRONTEND_PAYMENT_RESULT_URL}
+  confirmation-url: ${FRONTEND_CONFIRMATION_URL:http://localhost:3000/confirmation}
