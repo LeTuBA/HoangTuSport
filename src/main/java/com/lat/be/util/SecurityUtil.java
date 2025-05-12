@@ -147,10 +147,10 @@ public class SecurityUtil {
      *
      * @return true if the user is authenticated, false otherwise.
      */
-//    public static boolean isAuthenticated() {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        return authentication != null && getAuthorities(authentication).noneMatch(AuthoritiesConstants.ANONYMOUS::equals);
-//    }
+    public static boolean isAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated();
+    }
 
     /**
      * Checks if the current user has any of the authorities.
@@ -188,5 +188,19 @@ public class SecurityUtil {
 //    private static Stream<String> getAuthorities(Authentication authentication) {
 //        return authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority);
 //    }
+
+    public static String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails) {
+            return ((UserDetails) principal).getUsername();
+        }
+        
+        return principal.toString();
+    }
 
 }

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: pos-be
+    name: hoangtu
   jpa:
     hibernate:
       ddl-auto: update
