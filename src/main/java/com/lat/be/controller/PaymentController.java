@@ -62,7 +62,11 @@ public class PaymentController {
 
         // Generate payment URL
         String orderInfo = "Thanh toan don hang: " + orderId;
-        String paymentUrl = this.vnPayService.createPaymentUrl(orderId, order.getTotalPrice(), orderInfo, ipAddress);
+        Long totalPrice = (order.getTotalPrice() * 26000);
+        Long roundedTotalPrice = (long) (Math.ceil(totalPrice / 10000.0) * 10000);
+        System.out.println(roundedTotalPrice);
+
+        String paymentUrl = this.vnPayService.createPaymentUrl(orderId,roundedTotalPrice , orderInfo, ipAddress);
 
         // Update order with payment URL
         order.setPaymentUrl(paymentUrl);

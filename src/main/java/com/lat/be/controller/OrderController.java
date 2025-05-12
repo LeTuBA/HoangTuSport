@@ -64,10 +64,14 @@ public class OrderController {
                 
                 // Lấy IP của khách hàng
                 String clientIp = getClientIpAddress(request);
+
+
+                Long totalPrice = (order.getTotalPrice() * 26000);
+                Long roundedTotalPrice = (long) (Math.ceil(totalPrice / 10000.0) * 10000);
                 
                 String paymentUrl = vnPayService.createPaymentUrl(
-                    order.getId(), 
-                    order.getTotalPrice(), 
+                    order.getId(),
+                    roundedTotalPrice,
                     orderInfo,
                     clientIp
                 );
