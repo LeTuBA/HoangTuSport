@@ -10,4 +10,5 @@ import lombok.Data;
 public class OrderResponse {
     private Order order;
     private String paymentUrl;
+    private String confirmationUrl;
 }

@@ -26,6 +26,8 @@ import com.lat.be.util.constant.PaymentMethod;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/v1/payment")
 @RequiredArgsConstructor
@@ -33,13 +35,13 @@ import lombok.extern.slf4j.Slf4j;
 public class PaymentController {
     private final VNPayService vnPayService;
     private final OrderService orderService;
-    
-    @Value("${frontend.payment-result-url:http://localhost:3000/payment-result}")
-    private String frontendPaymentResultUrl;
+
+    @Value("${frontend.confirmation-url:http://localhost:3000/confirmation}")
+    private String frontendConfirmationUrl;
 
     @GetMapping("/create-payment/{orderId}")
     @ApiMessage("Tạo URL thanh toán cho đơn hàng thành công")
-    public ResponseEntity<Map<String, String>> createPayment(@PathVariable Long orderId) {
+    public ResponseEntity<Map<String, String>> createPayment(@PathVariable Long orderId, HttpServletRequest request) {
         Optional<Order> orderOpt = this.orderService.getOrderById(orderId);
         if (orderOpt.isEmpty()) {
             Map<String, String> response = new HashMap<>();
@@ -55,9 +57,16 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
+        // Lấy IP của client
+        String ipAddress = getClientIpAddress(request);
+
         // Generate payment URL
         String orderInfo = "Thanh toan don hang: " + orderId;
-        String paymentUrl = this.vnPayService.createPaymentUrl(orderId, order.getTotalPrice(), orderInfo);
+        Long totalPrice = (order.getTotalPrice() * 26000);
+        Long roundedTotalPrice = (long) (Math.ceil(totalPrice / 10000.0) * 10000);
+        System.out.println(roundedTotalPrice);
+
+        String paymentUrl = this.vnPayService.createPaymentUrl(orderId,roundedTotalPrice , orderInfo, ipAddress);
 
         // Update order with payment URL
         order.setPaymentUrl(paymentUrl);
@@ -69,6 +78,30 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Lấy địa chỉ IP của client từ request
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        }
+        
+        // Trong trường hợp client đang chạy trong proxy hoặc có nhiều địa chỉ IP
+        if (ipAddress != null && ipAddress.contains(",")) {
+            // Lấy địa chỉ IP đầu tiên
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        
+        return ipAddress;
+    }
+
     @GetMapping("/vnpay-return")
     public RedirectView vnpayReturn(@RequestParam Map<String, String> params) {
         log.info("VNPay return with params: {}", params);
@@ -78,32 +111,70 @@ public class PaymentController {
         
         // Redirect URL depends on payment result
         String redirectUrl;
+        String orderId = params.getOrDefault("vnp_TxnRef", "unknown");
         
         if (processedOrder.isPresent()) {
             // Payment successful
             Order order = processedOrder.get();
-            String message = "";
-            
-            // Add payment message to redirect URL if available
-            if (order.getPaymentMessage() != null && !order.getPaymentMessage().isEmpty()) {
-                try {
-                    message = "&message=" + URLEncoder.encode(order.getPaymentMessage(), StandardCharsets.UTF_8.toString());
-                } catch (UnsupportedEncodingException e) {
-                    log.error("Error encoding payment message", e);
-                }
+            // Chuyển hướng đến trang confirmation với trạng thái success
+            try {
+                String message = URLEncoder.encode("Thanh toán thành công", StandardCharsets.UTF_8.toString());
+                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success&message=" + message;
+            } catch (UnsupportedEncodingException e) {
+                redirectUrl = frontendConfirmationUrl + "/" + order.getId() + "?status=success";
+                log.error("Error encoding success message", e);
             }
-            
-            redirectUrl = frontendPaymentResultUrl + "?status=success&orderId=" + order.getId() + message;
         } else {
             // Payment failed
-            String orderId = params.getOrDefault("vnp_TxnRef", "unknown");
-            String errorMessage = "Thanh toán không thành công";
+            String responseCode = params.getOrDefault("vnp_ResponseCode", "99");
+            String errorMessage;
+            
+            // Xử lý thông báo lỗi dựa vào mã lỗi từ VNPay
+            switch (responseCode) {
+                case "07":
+                    errorMessage = "Trừ tiền thành công. Giao dịch bị nghi ngờ (liên quan tới lừa đảo, giao dịch bất thường)";
+                    break;
+                case "09":
+                    errorMessage = "Thẻ/Tài khoản chưa đăng ký dịch vụ InternetBanking";
+                    break;
+                case "10":
+                    errorMessage = "Xác thực thông tin thẻ/tài khoản không đúng quá 3 lần";
+                    break;
+                case "11":
+                    errorMessage = "Đã hết hạn chờ thanh toán. Xin vui lòng thực hiện lại giao dịch";
+                    break;
+                case "12":
+                    errorMessage = "Thẻ/Tài khoản bị khóa";
+                    break;
+                case "13":
+                    errorMessage = "Nhập sai mật khẩu xác thực giao dịch (OTP)";
+                    break;
+                case "24":
+                    errorMessage = "Giao dịch đã được hủy";
+                    break;
+                case "51":
+                    errorMessage = "Tài khoản không đủ số dư để thực hiện giao dịch";
+                    break;
+                case "65":
+                    errorMessage = "Tài khoản vượt quá hạn mức giao dịch trong ngày";
+                    break;
+                case "75":
+                    errorMessage = "Ngân hàng thanh toán đang bảo trì";
+                    break;
+                case "79":
+                    errorMessage = "Nhập sai mật khẩu thanh toán quá số lần quy định";
+                    break;
+                case "99":
+                    errorMessage = "Lỗi không xác định";
+                    break;
+                default:
+                    errorMessage = "Thanh toán không thành công. Mã lỗi: " + responseCode;
+            }
             
             try {
-                redirectUrl = frontendPaymentResultUrl + "?status=failed&orderId=" + orderId + 
-                        "&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
+                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed&message=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8.toString());
             } catch (UnsupportedEncodingException e) {
-                redirectUrl = frontendPaymentResultUrl + "?status=failed&orderId=" + orderId;
+                redirectUrl = frontendConfirmationUrl + "/" + orderId + "?status=failed";
                 log.error("Error encoding error message", e);
             }
         }

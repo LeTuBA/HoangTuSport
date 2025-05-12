@@ -22,7 +22,7 @@ import com.lat.be.repository.OrderDetailRepository;
 import com.lat.be.repository.OrderRepository;
 import com.lat.be.repository.ProductRepository;
 import com.lat.be.util.constant.PaymentStatus;
-
+import com.lat.be.util.constant.OrderStatus;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -62,6 +62,7 @@ public class OrderService {
                 .phone(createOrderDTO.getPhone())
                 .address(createOrderDTO.getAddress())
                 .paymentStatus(PaymentStatus.PENDING)
+                .orderStatus(OrderStatus.PENDING)
                 .createdAt(Instant.now())
                 .createdBy(currentUser.getEmail())
                 .build();
@@ -109,7 +110,7 @@ public class OrderService {
     }
     
     public ResultPaginationDTO getAllOrders(Specification<Order> orderSpec, Pageable pageable) {
-        Page<Order> orderPage = orderRepository.findAll(orderSpec, pageable);
+        Page<Order> orderPage = this.orderRepository.findAll(orderSpec, pageable);
         
         ResultPaginationDTO resultPaginationDTO = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
@@ -126,6 +127,24 @@ public class OrderService {
     
     public List<Order> getOrdersByUser(User user) {
         return orderRepository.findByUser(user);
+    }
+    
+    /**
+     * Lấy danh sách đơn hàng kèm theo thông tin chi tiết về các sản phẩm
+     * @param user Người dùng
+     * @return Danh sách đơn hàng
+     */
+    public List<Order> getOrdersWithDetailsByUser(User user) {
+        List<Order> orders = orderRepository.findByUser(user);
+        
+        // Đảm bảo rằng danh sách chi tiết đơn hàng được khởi tạo
+        for (Order order : orders) {
+            if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+                order.setOrderDetails(orderDetailRepository.findByOrder(order));
+            }
+        }
+        
+        return orders;
     }
     
     public List<OrderDetail> getOrderDetails(Long orderId) {

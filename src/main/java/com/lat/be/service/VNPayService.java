@@ -21,21 +21,27 @@ public class VNPayService {
     private final OrderRepository orderRepository;
 
     public String createPaymentUrl(Long orderId, long amount, String orderInfo) {
-        return vnPayConfig.createPaymentUrl(orderId, amount, orderInfo);
+        return createPaymentUrl(orderId, amount, orderInfo, vnPayConfig.getVnpIpAddr());
+    }
+    
+    public String createPaymentUrl(Long orderId, long amount, String orderInfo, String ipAddress) {
+        return vnPayConfig.createPaymentUrl(orderId, amount, orderInfo, ipAddress);
     }
 
     public Optional<Order> processPaymentReturn(Map<String, String> vnpParams) {
-        // Validate VNPay responsea
+        // Validate VNPay response (kiểm tra chữ ký)
         if (!vnPayConfig.validateReturnData(vnpParams)) {
             log.error("Invalid checksum from VNPay");
             return Optional.empty();
         }
 
-        // Get payment information
+        // Lấy thông tin thanh toán
         String vnpResponseCode = vnpParams.get("vnp_ResponseCode");
         String orderId = vnpParams.get("vnp_TxnRef");
+        
+        log.info("Processing VNPay payment return - Order ID: {}, Response Code: {}", orderId, vnpResponseCode);
 
-        // Find the order
+        // Tìm đơn hàng
         Optional<Order> orderOpt = orderRepository.findById(Long.parseLong(orderId));
         if (orderOpt.isEmpty()) {
             log.error("Order not found: {}", orderId);
@@ -43,17 +49,20 @@ public class VNPayService {
         }
 
         Order order = orderOpt.get();
+        
+        // Tránh xử lý trùng lặp đơn hàng đã thanh toán
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            log.info("Order already paid: {}", orderId);
+            return Optional.of(order);
+        }
 
-        // Check if payment is successful
+        // Kiểm tra kết quả thanh toán
         if ("00".equals(vnpResponseCode)) {
-            // Update order status
+            // Cập nhật trạng thái thanh toán thành công
             order.setPaymentStatus(PaymentStatus.PAID);
+            order.setPaymentMessage("Thanh toán thành công " + order.getTotalPrice() + " đồng");
             
-            // Add payment success message - sử dụng số nguyên thay vì định dạng
-            String successMessage = "Người dùng đã thanh toán thành công " + order.getTotalPrice() + " đồng";
-            order.setPaymentMessage(successMessage);
-            
-            // Save transaction number from VNPay if available
+            // Lưu mã giao dịch VNPay nếu có
             if (vnpParams.containsKey("vnp_TransactionNo")) {
                 order.setTransactionNo(vnpParams.get("vnp_TransactionNo"));
             }
@@ -62,9 +71,50 @@ public class VNPayService {
             log.info("Payment successful for order: {}", orderId);
             return Optional.of(order);
         } else {
-            // Payment failed
+            // Cập nhật trạng thái thanh toán thất bại
             order.setPaymentStatus(PaymentStatus.FAILED);
-            order.setPaymentMessage("Thanh toán không thành công. Mã lỗi: " + vnpResponseCode);
+            
+            // Tùy chỉnh thông báo lỗi dựa trên mã lỗi
+            String errorMessage;
+            switch (vnpResponseCode) {
+                case "07":
+                    errorMessage = "Trừ tiền thành công. Giao dịch bị nghi ngờ gian lận";
+                    break;
+                case "09":
+                    errorMessage = "Thẻ/Tài khoản chưa đăng ký dịch vụ InternetBanking";
+                    break;
+                case "10":
+                    errorMessage = "Xác thực thông tin thẻ/tài khoản không đúng quá 3 lần";
+                    break;
+                case "11":
+                    errorMessage = "Đã hết hạn chờ thanh toán";
+                    break;
+                case "12":
+                    errorMessage = "Thẻ/Tài khoản bị khóa";
+                    break;
+                case "13":
+                    errorMessage = "Nhập sai mật khẩu xác thực (OTP)";
+                    break;
+                case "24":
+                    errorMessage = "Giao dịch đã bị hủy";
+                    break;
+                case "51":
+                    errorMessage = "Tài khoản không đủ số dư";
+                    break;
+                case "65":
+                    errorMessage = "Tài khoản vượt quá hạn mức giao dịch";
+                    break;
+                case "75":
+                    errorMessage = "Ngân hàng đang bảo trì";
+                    break;
+                case "79":
+                    errorMessage = "Nhập sai mật khẩu thanh toán quá số lần quy định";
+                    break;
+                default:
+                    errorMessage = "Thanh toán không thành công. Mã lỗi: " + vnpResponseCode;
+            }
+            
+            order.setPaymentMessage(errorMessage);
             orderRepository.save(order);
             log.error("Payment failed for order: {} with response code: {}", orderId, vnpResponseCode);
             return Optional.empty();

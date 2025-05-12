@@ -12,6 +12,7 @@ import com.lat.be.util.constant.PaymentStatus;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,27 +58,44 @@ public class StatisticsService {
      * @param period Khoảng thời gian (today, week, month, year, all)
      */
     public StatisticsDTO getPerformanceStatistics(String period) {
-        Instant startDate = getStartDateForPeriod(period);
-        Instant previousStartDate = getPreviousPeriodStartDate(period, startDate);
+        // Lấy thời gian hiện tại
+        LocalDateTime now = LocalDateTime.now();
+        ZoneId zoneId = ZoneId.systemDefault();
+        
+        // Xác định khoảng thời gian hiện tại
+        LocalDateTime startDateTime = getStartDateTime(period, now);
+        LocalDateTime endDateTime = now;
+        
+        // Xác định khoảng thời gian trước đó
+        LocalDateTime previousStartDateTime = getPreviousStartDateTime(period, startDateTime);
+        LocalDateTime previousEndDateTime = startDateTime;
+        
+        // Chuyển đổi sang Instant
+        Instant startDate = startDateTime.atZone(zoneId).toInstant();
+        Instant endDate = endDateTime.atZone(zoneId).toInstant();
+        Instant previousStartDate = previousStartDateTime.atZone(zoneId).toInstant();
+        Instant previousEndDate = previousEndDateTime.atZone(zoneId).toInstant();
         
         // Lấy số liệu doanh thu
-        Long currentRevenue = orderRepository.sumRevenueInPeriod(startDate, PaymentStatus.PAID);
-        Long previousRevenue = orderRepository.sumRevenueInPeriod(previousStartDate, PaymentStatus.PAID);
-        GrowthDTO revenueGrowth = calculateGrowth(currentRevenue, previousRevenue);
+        Long currentRevenue = orderRepository.sumRevenueInPeriod(startDate, endDate, PaymentStatus.PAID);
+        Long previousRevenue = orderRepository.sumRevenueInPeriod(previousStartDate, previousEndDate, PaymentStatus.PAID);
         
         // Lấy số liệu đơn hàng
-        Long currentOrders = orderRepository.countOrdersInPeriod(startDate);
-        Long previousOrders = orderRepository.countOrdersInPeriod(previousStartDate);
-        GrowthDTO ordersGrowth = calculateGrowth(currentOrders, previousOrders);
+        Long currentOrders = orderRepository.countOrdersInPeriod(startDate, endDate);
+        Long previousOrders = orderRepository.countOrdersInPeriod(previousStartDate, previousEndDate);
         
         // Lấy số liệu sản phẩm đã bán
-        Long currentProductsSold = orderDetailRepository.countProductsSoldInPeriod(startDate);
-        Long previousProductsSold = orderDetailRepository.countProductsSoldInPeriod(previousStartDate);
-        GrowthDTO productsSoldGrowth = calculateGrowth(currentProductsSold, previousProductsSold);
+        Long currentProductsSold = orderDetailRepository.countProductsSoldInPeriod(startDate, endDate);
+        Long previousProductsSold = orderDetailRepository.countProductsSoldInPeriod(previousStartDate, previousEndDate);
         
         // Lấy số liệu khách hàng
-        Long currentCustomers = orderRepository.countCustomersInPeriod(startDate);
-        Long previousCustomers = orderRepository.countCustomersInPeriod(previousStartDate);
+        Long currentCustomers = orderRepository.countCustomersInPeriod(startDate, endDate);
+        Long previousCustomers = orderRepository.countCustomersInPeriod(previousStartDate, previousEndDate);
+        
+        // Tính toán tăng trưởng
+        GrowthDTO revenueGrowth = calculateGrowth(currentRevenue, previousRevenue);
+        GrowthDTO ordersGrowth = calculateGrowth(currentOrders, previousOrders);
+        GrowthDTO productsSoldGrowth = calculateGrowth(currentProductsSold, previousProductsSold);
         GrowthDTO customersGrowth = calculateGrowth(currentCustomers, previousCustomers);
         
         return StatisticsDTO.builder()
@@ -112,43 +130,38 @@ public class StatisticsService {
     /**
      * Lấy thời điểm bắt đầu dựa trên khoảng thời gian
      */
-    private Instant getStartDateForPeriod(String period) {
-        LocalDate today = LocalDate.now();
-        ZoneId zoneId = ZoneId.systemDefault();
-        
+    private LocalDateTime getStartDateTime(String period, LocalDateTime now) {
         switch (period.toLowerCase()) {
             case "today":
-                return today.atStartOfDay(zoneId).toInstant();
+                return now.toLocalDate().atStartOfDay();
             case "week":
-                return today.minusDays(7).atStartOfDay(zoneId).toInstant();
+                return now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay();
             case "month":
-                return today.minusDays(30).atStartOfDay(zoneId).toInstant();
+                return now.toLocalDate().withDayOfMonth(1).atStartOfDay();
             case "year":
-                return today.minusDays(365).atStartOfDay(zoneId).toInstant();
+                return now.toLocalDate().withDayOfYear(1).atStartOfDay();
             case "all":
             default:
-                return Instant.EPOCH; // Từ đầu thời gian
+                return LocalDateTime.of(1970, 1, 1, 0, 0);
         }
     }
     
     /**
      * Lấy thời điểm bắt đầu của khoảng thời gian trước đó
      */
-    private Instant getPreviousPeriodStartDate(String period, Instant currentStartDate) {
-        LocalDate startLocalDate = LocalDate.ofInstant(currentStartDate, ZoneId.systemDefault());
-        
+    private LocalDateTime getPreviousStartDateTime(String period, LocalDateTime startDateTime) {
         switch (period.toLowerCase()) {
             case "today":
-                return startLocalDate.minusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+                return startDateTime.minusDays(1);
             case "week":
-                return startLocalDate.minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant();
+                return startDateTime.minusWeeks(1);
             case "month":
-                return startLocalDate.minusDays(30).atStartOfDay(ZoneId.systemDefault()).toInstant();
+                return startDateTime.minusMonths(1);
             case "year":
-                return startLocalDate.minusDays(365).atStartOfDay(ZoneId.systemDefault()).toInstant();
+                return startDateTime.minusYears(1);
             case "all":
             default:
-                return Instant.EPOCH;
+                return LocalDateTime.of(1970, 1, 1, 0, 0);
         }
     }
 } 
