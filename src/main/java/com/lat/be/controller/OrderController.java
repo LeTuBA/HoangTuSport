@@ -137,18 +137,16 @@ public class OrderController {
         ResultPaginationDTO result = orderService.getAllOrders(orderSpec, pageable);
         return ResponseEntity.ok(result);
     }
-    
-    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
+
     @GetMapping("/{id}")
     @ApiMessage("Lấy thông tin đơn hàng thành công")
     public ResponseEntity<Order> getOrderById(@PathVariable("id") Long id) {
-        Order order = orderService.getOrderById(id)
+        Order order = this.orderService.getOrderById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
         return ResponseEntity.ok(order);
     }
     
     @GetMapping("/my-orders")
-    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @ApiMessage("Lấy danh sách đơn hàng của tôi thành công")
     public ResponseEntity<List<OrderWithItemsDTO>> getMyOrders() {
         User currentUser = this.userService.getCurrentUser();
