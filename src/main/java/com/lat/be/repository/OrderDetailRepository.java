@@ -28,14 +28,14 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long>,
     @Query("SELECT od.product.id as productId, od.product.name as productName, od.product.image as productImage, " +
            "SUM(od.quantity) as totalQuantitySold, SUM(od.totalPrice) as totalRevenue " +
            "FROM OrderDetail od " +
-           "WHERE od.order.createdAt >= :startDate " +
+           "WHERE od.order.createdAt >= :startDate AND od.order.createdAt <= :endDate " +
            "GROUP BY od.product.id, od.product.name, od.product.image " +
            "ORDER BY totalQuantitySold DESC")
-    List<Object[]> findTopSellingProductsInPeriod(@Param("startDate") Instant startDate);
+    List<Object[]> findTopSellingProductsInPeriod(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
     
     @Query("SELECT SUM(od.quantity) FROM OrderDetail od")
     Long countTotalProductsSold();
     
-    @Query("SELECT SUM(od.quantity) FROM OrderDetail od WHERE od.order.createdAt >= :startDate")
-    Long countProductsSoldInPeriod(@Param("startDate") Instant startDate);
+    @Query("SELECT SUM(od.quantity) FROM OrderDetail od WHERE od.order.createdAt >= :startDate AND od.order.createdAt <= :endDate")
+    Long countProductsSoldInPeriod(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 } 

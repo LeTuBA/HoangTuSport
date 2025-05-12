@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/statistics")
+@RequestMapping("/api/v1/statistics")
 public class StatisticsController {
 
     private final StatisticsService statisticsService;
