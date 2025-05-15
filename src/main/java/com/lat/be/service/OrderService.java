@@ -16,6 +16,7 @@ import com.lat.be.domain.Order;
 import com.lat.be.domain.OrderDetail;
 import com.lat.be.domain.Product;
 import com.lat.be.domain.User;
+import com.lat.be.domain.enumeration.ProductStatus;
 import com.lat.be.domain.CartDetail;
 import com.lat.be.domain.request.CreateOrderDTO;
 import com.lat.be.domain.response.ResultPaginationDTO;
@@ -81,7 +82,10 @@ public class OrderService {
                 throw new RuntimeException("Số lượng sản phẩm " + product.getName() + " không đủ");
             }
             product.setQuantity(currentStock - item.getQuantity());
-            productRepository.save(product);
+            if(product.getQuantity() == 0) {
+                product.setStatus(ProductStatus.OUT_OF_STOCK);
+            }
+            this.productRepository.save(product);
             
             OrderDetail orderDetail = OrderDetail.builder()
                     .order(savedOrder)
