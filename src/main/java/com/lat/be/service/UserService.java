@@ -112,6 +112,7 @@ public class UserService {
             currentUser.setAddress(reqUser.getAddress());
             currentUser.setGender(reqUser.getGender());
             currentUser.setName(reqUser.getName());
+            currentUser.setEmail(reqUser.getEmail());
 
             if(avatarFile != null && !avatarFile.isEmpty()){
                 String avatarUrl = this.cloudinaryService.uploadImage(avatarFile);

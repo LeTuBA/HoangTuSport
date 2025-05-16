@@ -11,6 +11,7 @@ public class UpdateUserDTO {
     @Size(min = 3, message = "Tên phải có ít nhất 3 ký tự")
     private String name;
     private GenderEnum gender;
+    private String email;
 
     @NotNull
     private String address;
