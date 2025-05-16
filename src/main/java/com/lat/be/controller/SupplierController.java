@@ -42,16 +42,6 @@ public class SupplierController {
     private final SupplierService supplierService;
     private final SupplierMapper supplierMapper;
     private final CategoryService categoryService;
-    
-    @GetMapping("/suppliers")
-    @ApiMessage("Get all suppliers")
-    public ResponseEntity<ResultPaginationDTO> getSuppliers(
-        @Filter Specification<Supplier> supplierSpec,
-        Pageable pageable
-    ) {
-        ResultPaginationDTO rs = this.supplierService.handleGetSupplier(supplierSpec, pageable);
-        return ResponseEntity.ok(rs);
-    }
 
     @PreAuthorize("hasRole('admin')")
     @PostMapping(value = "", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})

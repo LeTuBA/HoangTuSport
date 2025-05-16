@@ -240,5 +240,17 @@ public class OrderController {
         return ResponseEntity.ok(updatedOrder);
     }
 
+    @PutMapping("/{id}/update-transfer")
+    @PreAuthorize("hasAnyRole('admin', 'employee')")
+    @ApiMessage("Cập nhật trạng thái chuyển khoản thành công")
+    public ResponseEntity<Order> updateTransfer(
+            @PathVariable("id") Long id) {
+        Order order = orderService.getOrderById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
+        if(order.getPaymentMethod() == PaymentMethod.TRANSFER){
+            order.setPaymentStatus(PaymentStatus.PAID);
+            order.setPaymentMessage("Thanh toán thành công");
+        }
+        return ResponseEntity.ok(this.orderService.updateOrder(order));
     
 } 
