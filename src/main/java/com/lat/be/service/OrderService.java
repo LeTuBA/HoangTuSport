@@ -116,15 +116,9 @@ public class OrderService {
     
     public ResultPaginationDTO getAllOrders(Specification<Order> orderSpec, Pageable pageable) {
         int pageNumber = pageable.getPageNumber();
-        if (pageNumber > 0) {
-            pageNumber = pageNumber - 1;
-        }
         
-        // Tạo lại pageable với pageNumber mới
-        Pageable adjustedPageable = PageRequest.of(pageNumber, pageable.getPageSize(), pageable.getSort());
-        
-        // Lấy danh sách đơn hàng với pageable đã điều chỉnh
-        Page<Order> orderPage = this.orderRepository.findAll(orderSpec, adjustedPageable);
+        // Sử dụng pageable trực tiếp
+        Page<Order> orderPage = this.orderRepository.findAll(orderSpec, pageable);
         
         ResultPaginationDTO result = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
