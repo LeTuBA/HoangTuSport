@@ -3,6 +3,7 @@ package com.lat.be.service;
 import com.lat.be.domain.Category;
 import com.lat.be.domain.Product;
 import com.lat.be.domain.Supplier;
+import com.lat.be.domain.enumeration.ProductStatus;
 import com.lat.be.domain.mapper.ProductMapper;
 import com.lat.be.domain.request.CreateProductDTO;
 import com.lat.be.domain.response.ResultPaginationDTO;
@@ -125,6 +126,10 @@ public class ProductService {
         existingProduct.setStatus(product.getStatus());
         existingProduct.setCategory(categoryOptional.get());
         existingProduct.setSupplier(supplierOptional.get());
+
+        if(product.getQuantity() == 0 && product.getStatus() == ProductStatus.ACTIVE) {
+            existingProduct.setStatus(ProductStatus.OUT_OF_STOCK);
+        }
 
         // Xử lý tải lên hình ảnh
         if (imageFile != null && !imageFile.isEmpty()) {
