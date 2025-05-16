@@ -243,7 +243,6 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/update-transfer")
-    @PreAuthorize("hasAnyRole('admin', 'employee')")
     @ApiMessage("Cập nhật trạng thái chuyển khoản thành công")
     public ResponseEntity<Order> updateTransfer(
             @PathVariable("id") Long id) {
