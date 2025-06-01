@@ -109,6 +109,7 @@ public class AuthController {
             userLogin.setAvatar(currentUser.getAvatar());
             userLogin.setAddress(currentUser.getAddress());
             userLogin.setGender(currentUser.getGender());
+            userLogin.setRole(currentUser.getRole());
             userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok(userGetAccount);
