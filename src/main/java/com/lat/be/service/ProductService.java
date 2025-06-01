@@ -38,18 +38,22 @@ public class ProductService {
 
     // Lấy danh sách sản phẩm phân trang
     public ResultPaginationDTO getAll(Specification<Product> productSpec, Pageable pageable) {
-        Page<Product> pageProduct = productRepository.findAll(productSpec, pageable);
-        ResultPaginationDTO rs = new ResultPaginationDTO();
+        int pageNumber = pageable.getPageNumber();
+        
+        // Sử dụng pageable trực tiếp
+        Page<Product> orderPage = this.productRepository.findAll(productSpec, pageable);
+        
+        ResultPaginationDTO result = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
-
-        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPage(pageNumber + 1); // Trả về số trang theo format của client
         meta.setPageSize(pageable.getPageSize());
-        meta.setPages(pageProduct.getTotalPages());
-        meta.setTotal(pageProduct.getTotalElements());
-
-        rs.setMeta(meta);
-        rs.setResult(pageProduct.getContent());
-        return rs;
+        meta.setPages(orderPage.getTotalPages());
+        meta.setTotal(orderPage.getTotalElements());
+        
+        result.setMeta(meta);
+        result.setResult(orderPage.getContent());
+        
+        return result;
     }
 
     // Lấy sản phẩm theo ID

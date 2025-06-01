@@ -14,7 +14,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +37,7 @@ public class ProductController {
     @ApiMessage("Lấy danh sách sản phẩm")
     public ResponseEntity<ResultPaginationDTO> fetchAllProduct(
             @Filter Specification<Product> spec,
-            Pageable pageable
+            @PageableDefault(sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         ResultPaginationDTO rs = this.productService.getAll(spec, pageable);
         return ResponseEntity.ok(rs);
