@@ -61,8 +61,8 @@ public class OrderController {
             // Xử lý theo phương thức thanh toán
             if (order.getPaymentMethod() == PaymentMethod.COD) {
                 // Nếu là COD, chỉ cần tạo đơn hàng với trạng thái PENDING
-                order.setPaymentStatus(PaymentStatus.PENDING);
-                order.setPaymentMessage("Cảm ơn bạn đã đặt hàng. Vui lòng chuẩn bị số tiền " + order.getTotalPrice() + " VNĐ khi nhận hàng");
+                Long total = (long) (Math.ceil((order.getTotalPrice() * 26000) / 1000.0) * 1000);
+                order.setPaymentMessage("Cảm ơn bạn đã đặt hàng. Vui lòng chuẩn bị số tiền " + total  + " VNĐ khi nhận hàng");
                 orderService.updateOrder(order);
             } else if (order.getPaymentMethod() == PaymentMethod.TRANSFER) {
                 // Nếu là TRANSFER, tạo URL thanh toán VNPay
