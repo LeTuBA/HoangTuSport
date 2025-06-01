@@ -14,6 +14,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +28,9 @@ public class StatisticsService {
 
     private final OrderDetailRepository orderDetailRepository;
     private final OrderRepository orderRepository;
+    
+    // Múi giờ UTC+7 (Asia/Ho_Chi_Minh)
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     /**
      * Lấy danh sách 3 sản phẩm bán chạy nhất
@@ -58,23 +63,22 @@ public class StatisticsService {
      * @param period Khoảng thời gian (today, week, month, year, all)
      */
     public StatisticsDTO getPerformanceStatistics(String period) {
-        // Lấy thời gian hiện tại
-        LocalDateTime now = LocalDateTime.now();
-        ZoneId zoneId = ZoneId.systemDefault();
+        // Lấy thời gian hiện tại theo múi giờ UTC+7
+        LocalDateTime now = LocalDateTime.now(VIETNAM_ZONE);
         
         // Xác định khoảng thời gian hiện tại
         LocalDateTime startDateTime = getStartDateTime(period, now);
-        LocalDateTime endDateTime = now;
+        LocalDateTime endDateTime = getEndDateTime(period, now);
         
-        // Xác định khoảng thời gian trước đó
+        // Xác định khoảng thời gian trước đó (cùng độ dài)
         LocalDateTime previousStartDateTime = getPreviousStartDateTime(period, startDateTime);
-        LocalDateTime previousEndDateTime = startDateTime;
+        LocalDateTime previousEndDateTime = getPreviousEndDateTime(period, startDateTime);
         
         // Chuyển đổi sang Instant
-        Instant startDate = startDateTime.atZone(zoneId).toInstant();
-        Instant endDate = endDateTime.atZone(zoneId).toInstant();
-        Instant previousStartDate = previousStartDateTime.atZone(zoneId).toInstant();
-        Instant previousEndDate = previousEndDateTime.atZone(zoneId).toInstant();
+        Instant startDate = startDateTime.atZone(VIETNAM_ZONE).toInstant();
+        Instant endDate = endDateTime.atZone(VIETNAM_ZONE).toInstant();
+        Instant previousStartDate = previousStartDateTime.atZone(VIETNAM_ZONE).toInstant();
+        Instant previousEndDate = previousEndDateTime.atZone(VIETNAM_ZONE).toInstant();
         
         // Lấy số liệu doanh thu
         Long currentRevenue = orderRepository.sumRevenueInPeriod(startDate, endDate, PaymentStatus.PAID);
@@ -135,14 +139,51 @@ public class StatisticsService {
             case "today":
                 return now.toLocalDate().atStartOfDay();
             case "week":
-                return now.toLocalDate().minusDays(now.getDayOfWeek().getValue() - 1).atStartOfDay();
+                // Thứ 2 của tuần hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .atStartOfDay();
             case "month":
-                return now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+                // Ngày 1 của tháng hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.firstDayOfMonth())
+                    .atStartOfDay();
             case "year":
-                return now.toLocalDate().withDayOfYear(1).atStartOfDay();
+                // Ngày 1/1 của năm hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.firstDayOfYear())
+                    .atStartOfDay();
             case "all":
             default:
                 return LocalDateTime.of(1970, 1, 1, 0, 0);
+        }
+    }
+    
+    /**
+     * Lấy thời điểm kết thúc dựa trên khoảng thời gian
+     */
+    private LocalDateTime getEndDateTime(String period, LocalDateTime now) {
+        switch (period.toLowerCase()) {
+            case "today":
+                return now.toLocalDate().atTime(23, 59, 59);
+            case "week":
+                // Chủ nhật của tuần hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+                    .atTime(23, 59, 59);
+            case "month":
+                // Ngày cuối tháng hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.lastDayOfMonth())
+                    .atTime(23, 59, 59);
+            case "year":
+                // Ngày 31/12 của năm hiện tại
+                return now.toLocalDate()
+                    .with(TemporalAdjusters.lastDayOfYear())
+                    .atTime(23, 59, 59);
+            case "all":
+            default:
+                return now;
         }
     }
     
@@ -152,13 +193,46 @@ public class StatisticsService {
     private LocalDateTime getPreviousStartDateTime(String period, LocalDateTime startDateTime) {
         switch (period.toLowerCase()) {
             case "today":
+                // Hôm qua
                 return startDateTime.minusDays(1);
             case "week":
+                // Thứ 2 của tuần trước
                 return startDateTime.minusWeeks(1);
             case "month":
+                // Ngày 1 của tháng trước
                 return startDateTime.minusMonths(1);
             case "year":
+                // Ngày 1/1 của năm trước
                 return startDateTime.minusYears(1);
+            case "all":
+            default:
+                return LocalDateTime.of(1970, 1, 1, 0, 0);
+        }
+    }
+    
+    /**
+     * Lấy thời điểm kết thúc của khoảng thời gian trước đó
+     */
+    private LocalDateTime getPreviousEndDateTime(String period, LocalDateTime startDateTime) {
+        switch (period.toLowerCase()) {
+            case "today":
+                // 23:59:59 hôm qua
+                return startDateTime.minusDays(1).toLocalDate().atTime(23, 59, 59);
+            case "week":
+                // Chủ nhật của tuần trước
+                return startDateTime.minusWeeks(1).toLocalDate()
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+                    .atTime(23, 59, 59);
+            case "month":
+                // Ngày cuối tháng trước
+                return startDateTime.minusMonths(1).toLocalDate()
+                    .with(TemporalAdjusters.lastDayOfMonth())
+                    .atTime(23, 59, 59);
+            case "year":
+                // Ngày 31/12 của năm trước
+                return startDateTime.minusYears(1).toLocalDate()
+                    .with(TemporalAdjusters.lastDayOfYear())
+                    .atTime(23, 59, 59);
             case "all":
             default:
                 return LocalDateTime.of(1970, 1, 1, 0, 0);

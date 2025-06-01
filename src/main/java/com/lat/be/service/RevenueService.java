@@ -19,6 +19,9 @@ import java.util.List;
 public class RevenueService {
 
     private final OrderDetailRepository orderDetailRepository;
+    
+    // Múi giờ UTC+7 (Asia/Ho_Chi_Minh)
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public SupplierRevenueResponseDTO getSupplierRevenues() {
         List<Object[]> supplierRevenueData = orderDetailRepository.getSupplierRevenues(PaymentStatus.PAID);
@@ -49,8 +52,9 @@ public class RevenueService {
     }
     
     public SupplierRevenueResponseDTO getSupplierRevenuesInPeriod(LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        Instant startDate = startDateTime.atZone(ZoneId.systemDefault()).toInstant();
-        Instant endDate = endDateTime.atZone(ZoneId.systemDefault()).toInstant();
+        // Chuyển đổi LocalDateTime sang Instant sử dụng múi giờ UTC+7
+        Instant startDate = startDateTime.atZone(VIETNAM_ZONE).toInstant();
+        Instant endDate = endDateTime.atZone(VIETNAM_ZONE).toInstant();
         
         List<Object[]> supplierRevenueData = orderDetailRepository.getSupplierRevenuesInPeriod(startDate, endDate, PaymentStatus.PAID);
         Long totalRevenue = orderDetailRepository.getTotalRevenueInPeriod(startDate, endDate, PaymentStatus.PAID);

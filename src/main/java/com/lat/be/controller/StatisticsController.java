@@ -16,7 +16,8 @@ import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 @RestController
@@ -26,6 +27,9 @@ public class StatisticsController {
 
     private final StatisticsService statisticsService;
     private final RevenueService revenueService;
+    
+    // Múi giờ UTC+7 (Asia/Ho_Chi_Minh)
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     /**
      * API lấy ra 3 sản phẩm bán chạy nhất
@@ -88,25 +92,47 @@ public class StatisticsController {
         if (period.equalsIgnoreCase("all")) {
             supplierRevenue = this.revenueService.getSupplierRevenues();
         } else {
-            // Xác định khoảng thời gian dựa trên period
-            LocalDateTime endDateTime = LocalDateTime.now();
+            // Lấy thời gian hiện tại theo múi giờ UTC+7
+            LocalDateTime now = LocalDateTime.now(VIETNAM_ZONE);
             LocalDateTime startDateTime;
+            LocalDateTime endDateTime;
             
             switch (period.toLowerCase()) {
                 case "today":
-                    startDateTime = endDateTime.toLocalDate().atStartOfDay();
+                    // Từ 00:00:00 đến 23:59:59 hôm nay
+                    startDateTime = now.toLocalDate().atStartOfDay();
+                    endDateTime = now.toLocalDate().atTime(23, 59, 59);
                     break;
                 case "week":
-                    startDateTime = endDateTime.toLocalDate().atStartOfDay().minus(7, ChronoUnit.DAYS);
+                    // Từ thứ 2 đến chủ nhật của tuần hiện tại
+                    startDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        .atStartOfDay();
+                    endDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+                        .atTime(23, 59, 59);
                     break;
                 case "month":
-                    startDateTime = endDateTime.toLocalDate().atStartOfDay().minus(30, ChronoUnit.DAYS);
+                    // Từ ngày 1 đến cuối tháng hiện tại
+                    startDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.firstDayOfMonth())
+                        .atStartOfDay();
+                    endDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.lastDayOfMonth())
+                        .atTime(23, 59, 59);
                     break;
                 case "year":
-                    startDateTime = endDateTime.toLocalDate().atStartOfDay().minus(365, ChronoUnit.DAYS);
+                    // Từ ngày 1/1 đến 31/12 của năm hiện tại
+                    startDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.firstDayOfYear())
+                        .atStartOfDay();
+                    endDateTime = now.toLocalDate()
+                        .with(TemporalAdjusters.lastDayOfYear())
+                        .atTime(23, 59, 59);
                     break;
                 default:
-                    startDateTime = endDateTime.toLocalDate().atStartOfDay();
+                    startDateTime = now.toLocalDate().atStartOfDay();
+                    endDateTime = now.toLocalDate().atTime(23, 59, 59);
             }
             
             supplierRevenue = revenueService.getSupplierRevenuesInPeriod(startDateTime, endDateTime);
