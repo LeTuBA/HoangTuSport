@@ -34,8 +34,6 @@ import com.turkraft.springfilter.boot.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
@@ -43,9 +41,6 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final VNPayService vnPayService;
-    
-    @Value("${frontend.confirmation-url:http://localhost:3000/confirmation}")
-    private String frontendConfirmationUrl;
     
     @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
     @PostMapping
@@ -82,12 +77,6 @@ public class OrderController {
                 order.setPaymentUrl(paymentUrl);
                 orderService.updateOrder(order);
                 response.setPaymentUrl(paymentUrl);
-                String confirmationUrl = frontendConfirmationUrl;
-                if (!confirmationUrl.endsWith("/")) {
-                    confirmationUrl += "/";
-                }
-                confirmationUrl += order.getId();
-                response.setConfirmationUrl(confirmationUrl);
             }
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -163,42 +152,7 @@ public class OrderController {
         return ResponseEntity.ok(orderDetails);
     }
     
-    @GetMapping("/{id}/payment-url")
-    @PreAuthorize("hasAnyRole('admin', 'employee', 'user')")
-    @ApiMessage("Lấy URL thanh toán cho đơn hàng thành công")
-    public ResponseEntity<?> getPaymentUrl(@PathVariable("id") Long id, HttpServletRequest request) {
-        Order order = orderService.getOrderById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
-        
-        // Chỉ tạo URL thanh toán cho phương thức TRANSFER
-        if (order.getPaymentMethod() != PaymentMethod.TRANSFER) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", "Đơn hàng không sử dụng phương thức thanh toán chuyển khoản");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-        
-        // Nếu đã có URL thanh toán, trả về URL đó
-        if (order.getPaymentUrl() != null && !order.getPaymentUrl().isEmpty()) {
-            Map<String, String> response = new HashMap<>();
-            response.put("paymentUrl", order.getPaymentUrl());
-            return ResponseEntity.ok(response);
-        }
-        
-        // Lấy IP của khách hàng
-        String clientIp = getClientIpAddress(request);
-        
-        // Tạo URL thanh toán mới
-        String orderInfo = "Thanh toan don hang: " + order.getId();
-        String paymentUrl = vnPayService.createPaymentUrl(order.getId(), order.getTotalPrice(), orderInfo, clientIp);
-        
-        // Cập nhật đơn hàng với URL thanh toán
-        order.setPaymentUrl(paymentUrl);
-        orderService.updateOrder(order);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("paymentUrl", paymentUrl);
-        return ResponseEntity.ok(response);
-    }
+    // Endpoint này đã được thay thế bằng việc trả về paymentUrl trực tiếp khi tạo đơn hàng
     
     @PutMapping("/{id}/update-payment-status")
     @PreAuthorize("hasAnyRole('admin', 'employee')")
@@ -242,16 +196,5 @@ public class OrderController {
         return ResponseEntity.ok(updatedOrder);
     }
 
-    @PutMapping("/{id}/update-transfer")
-    @ApiMessage("Cập nhật trạng thái chuyển khoản thành công")
-    public ResponseEntity<Order> updateTransfer(
-            @PathVariable("id") Long id) {
-        Order order = orderService.getOrderById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
-        if(order.getPaymentMethod() == PaymentMethod.TRANSFER){
-            order.setPaymentStatus(PaymentStatus.PAID);
-            order.setPaymentMessage("Thanh toán thành công");
-        }
-        return ResponseEntity.ok(this.orderService.updateOrder(order));
-    }
+    // Phương thức update-transfer đã được thay thế bằng xử lý tự động từ VNPayController
 } 

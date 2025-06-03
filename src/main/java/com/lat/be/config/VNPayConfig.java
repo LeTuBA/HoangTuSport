@@ -26,7 +26,7 @@ public class VNPayConfig {
     @Value("${vnpay.pay-url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     private String vnpPayUrl;
 
-    @Value("${vnpay.return-url:http://localhost:8080/api/payment/vnpay-return}")
+    @Value("${vnpay.return-url:https://hoangtusport.id.vn/confirmation}")
     private String vnpReturnUrl;
 
     @Value("${vnpay.tmn-code:YOURCODE}")
@@ -79,11 +79,7 @@ public class VNPayConfig {
         vnp_Params.put("vnp_OrderInfo", safeOrderInfo);
         vnp_Params.put("vnp_OrderType", "200000");
         vnp_Params.put("vnp_Locale", "vn");
-        String fullReturnUrl = vnpReturnUrl;
-        if (!fullReturnUrl.endsWith("/")) {
-            fullReturnUrl += "/";
-        }
-        fullReturnUrl += orderId;
+        String fullReturnUrl = vnpReturnUrl + "/" + orderId;
         vnp_Params.put("vnp_ReturnUrl", fullReturnUrl);
         vnp_Params.put("vnp_IpAddr", ipAddress);
         ZoneId vietnamZone = ZoneId.of("Asia/Ho_Chi_Minh");
